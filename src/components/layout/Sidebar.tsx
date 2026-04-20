@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { logoutAction } from '@/app/(auth)/login/action';
+import { usePathname, useRouter } from 'next/navigation';
 import { closeSidebar, useSidebarOpen } from './sidebar-state';
 
 interface SidebarProps {
@@ -45,6 +44,7 @@ export function Sidebar({
   alertsCount = 0,
 }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const isOpen = useSidebarOpen();
   const items = buildNavItems(equipmentLabel || 'ציוד');
 
@@ -109,14 +109,17 @@ export function Sidebar({
         <div className="border-t border-white/10 p-4">
           <p className="text-sm font-medium truncate">{username}</p>
           <p className="text-xs text-gray-400 mb-3">{userRole}</p>
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              className="w-full py-2 rounded-md bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors"
-            >
-              יציאה
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' });
+              router.push('/login');
+              router.refresh();
+            }}
+            className="w-full py-2 rounded-md bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors"
+          >
+            יציאה
+          </button>
           <p className="mt-3 text-[10px] text-gray-500 text-center">
             ניהול חכם v1.0.0
           </p>

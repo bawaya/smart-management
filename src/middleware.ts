@@ -4,6 +4,7 @@ import { verifyToken } from '@/lib/auth/jwt';
 const EXACT_BYPASS = new Set([
   '/login',
   '/setup',
+  '/api/auth/login',
   '/favicon.ico',
   '/manifest.json',
   '/offline.html',

@@ -1,13 +1,9 @@
-'use server';
-
-import { redirect } from 'next/navigation';
+import { NextResponse } from 'next/server';
 import { verifyPassword } from '@/lib/auth/password';
-import { createSession, destroySession } from '@/lib/auth/session';
+import { createSession } from '@/lib/auth/session';
 import { getDb, getTenantId } from '@/lib/db';
 
-export type LoginResult =
-  | { success: true; mustChangePassword: boolean; isSetupComplete: boolean }
-  | { success: false; error: string };
+export const runtime = 'edge';
 
 const INVALID_CREDENTIALS = 'اسم المستخدم أو كلمة المرور غلط';
 
@@ -23,12 +19,30 @@ interface SettingRow {
   value: string;
 }
 
-export async function loginAction(formData: FormData): Promise<LoginResult> {
-  const username = String(formData.get('username') ?? '').trim();
-  const password = String(formData.get('password') ?? '');
+export type LoginResponse =
+  | { success: true; mustChangePassword: boolean; isSetupComplete: boolean }
+  | { success: false; error: string };
+
+export async function POST(request: Request): Promise<NextResponse<LoginResponse>> {
+  let payload: { username?: unknown; password?: unknown };
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json(
+      { success: false, error: INVALID_CREDENTIALS },
+      { status: 400 },
+    );
+  }
+
+  const username =
+    typeof payload.username === 'string' ? payload.username.trim() : '';
+  const password = typeof payload.password === 'string' ? payload.password : '';
 
   if (!username || !password) {
-    return { success: false, error: INVALID_CREDENTIALS };
+    return NextResponse.json(
+      { success: false, error: INVALID_CREDENTIALS },
+      { status: 400 },
+    );
   }
 
   const db = getDb();
@@ -40,12 +54,18 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
   );
 
   if (!user) {
-    return { success: false, error: INVALID_CREDENTIALS };
+    return NextResponse.json(
+      { success: false, error: INVALID_CREDENTIALS },
+      { status: 401 },
+    );
   }
 
   const passwordOk = await verifyPassword(password, user.password_hash);
   if (!passwordOk) {
-    return { success: false, error: INVALID_CREDENTIALS };
+    return NextResponse.json(
+      { success: false, error: INVALID_CREDENTIALS },
+      { status: 401 },
+    );
   }
 
   await createSession(user.id, user.role, user.username, tenantId);
@@ -55,14 +75,9 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
     [tenantId],
   );
 
-  return {
+  return NextResponse.json({
     success: true,
     mustChangePassword: user.must_change_password === 1,
     isSetupComplete: (setupRow?.value ?? 'false') === 'true',
-  };
-}
-
-export async function logoutAction(): Promise<void> {
-  await destroySession();
-  redirect('/login');
+  });
 }

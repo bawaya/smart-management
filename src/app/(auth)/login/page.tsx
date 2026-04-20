@@ -2,7 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useState } from 'react';
-import { loginAction } from './action';
+
+type LoginResponse =
+  | { success: true; mustChangePassword: boolean; isSetupComplete: boolean }
+  | { success: false; error: string };
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,12 +21,13 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const formData = new FormData();
-    formData.set('username', username);
-    formData.set('password', password);
-
     try {
-      const result = await loginAction(formData);
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const result = (await response.json()) as LoginResponse;
 
       if (!result.success) {
         setError(result.error);
