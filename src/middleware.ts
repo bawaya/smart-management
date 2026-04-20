@@ -5,6 +5,7 @@ const EXACT_BYPASS = new Set([
   '/login',
   '/setup',
   '/api/auth/login',
+  '/api/health',
   '/favicon.ico',
   '/manifest.json',
   '/offline.html',

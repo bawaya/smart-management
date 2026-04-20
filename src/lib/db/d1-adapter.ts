@@ -2,6 +2,11 @@ import { getRequestContext } from '@cloudflare/next-on-pages';
 import type { BatchStatement, RunResult, SmartDb } from './types';
 
 // Minimal D1 types — avoids adding @cloudflare/workers-types as a dependency.
+// Documented D1 return shapes:
+//   .all()   → { results: T[], success: boolean, meta: object }
+//   .first() → T | null (row directly)
+//   .run()   → { success: boolean, meta: { changes: number, last_row_id: number, ... } }
+//   .batch() → D1Result<T>[] (array of all()-shaped results)
 export interface D1Result<T = unknown> {
   results: T[];
   success: boolean;
@@ -47,6 +52,28 @@ function toArray<T>(raw: unknown): T[] {
   return Array.isArray(wrapped?.results) ? (wrapped!.results as T[]) : [];
 }
 
+// TEMPORARY DEBUG LOGGING — remove once D1 shape issue is identified.
+// Truncates SQL and stringifies shape info; safe against circular refs.
+function safeStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return '[unserializable]';
+  }
+}
+
+function logShape(tag: string, sql: string, raw: unknown): void {
+  const sqlShort = sql.replace(/\s+/g, ' ').slice(0, 80);
+  const isArr = Array.isArray(raw);
+  const keys =
+    !isArr && raw && typeof raw === 'object'
+      ? Object.keys(raw as Record<string, unknown>).slice(0, 10)
+      : null;
+  console.log(
+    `[d1-debug] ${tag} sql="${sqlShort}" typeof=${typeof raw} isArray=${isArr} keys=${safeStringify(keys)} raw=${safeStringify(raw).slice(0, 300)}`,
+  );
+}
+
 export class D1SmartDb implements SmartDb {
   constructor(private readonly d1: D1Database) {}
 
@@ -55,6 +82,7 @@ export class D1SmartDb implements SmartDb {
     params: readonly unknown[] = [],
   ): Promise<T[]> {
     const raw = (await prepare(this.d1, sql, params).all<T>()) as unknown;
+    logShape('query', sql, raw);
     return toArray<T>(raw);
   }
 
@@ -63,6 +91,7 @@ export class D1SmartDb implements SmartDb {
     params: readonly unknown[] = [],
   ): Promise<T | null> {
     const row = await prepare(this.d1, sql, params).first<T>();
+    logShape('queryOne', sql, row);
     return row ?? null;
   }
 
@@ -71,6 +100,7 @@ export class D1SmartDb implements SmartDb {
     params: readonly unknown[] = [],
   ): Promise<RunResult> {
     const result = await prepare(this.d1, sql, params).run();
+    logShape('run', sql, result);
     return {
       changes: result?.meta?.changes ?? 0,
       lastInsertRowid: result?.meta?.last_row_id ?? null,
@@ -82,7 +112,8 @@ export class D1SmartDb implements SmartDb {
     const stmts = statements.map((s) =>
       prepare(this.d1, s.sql, s.params ?? []),
     );
-    await this.d1.batch(stmts);
+    const result = await this.d1.batch(stmts);
+    logShape('batch', `(${statements.length} statements)`, result);
   }
 
   async exec(sql: string): Promise<void> {
