@@ -26,6 +26,27 @@ export interface D1Database {
   exec(sql: string): Promise<unknown>;
 }
 
+// D1 throws when .bind() is called with zero arguments. Skip the bind call
+// entirely when there are no parameters.
+function prepare(
+  d1: D1Database,
+  sql: string,
+  params: readonly unknown[],
+): D1PreparedStatement {
+  const stmt = d1.prepare(sql);
+  return params.length > 0 ? stmt.bind(...params) : stmt;
+}
+
+// D1's .all() documents its return as { results, success, meta }. Some
+// wrappers/mocks have returned bare arrays, and occasional edge cases have
+// surfaced undefined.results. Accept all three shapes defensively so one
+// unexpected response doesn't surface as "d.map is not a function".
+function toArray<T>(raw: unknown): T[] {
+  if (Array.isArray(raw)) return raw as T[];
+  const wrapped = raw as { results?: unknown } | null | undefined;
+  return Array.isArray(wrapped?.results) ? (wrapped!.results as T[]) : [];
+}
+
 export class D1SmartDb implements SmartDb {
   constructor(private readonly d1: D1Database) {}
 
@@ -33,15 +54,15 @@ export class D1SmartDb implements SmartDb {
     sql: string,
     params: readonly unknown[] = [],
   ): Promise<T[]> {
-    const result = await this.d1.prepare(sql).bind(...params).all<T>();
-    return result.results;
+    const raw = (await prepare(this.d1, sql, params).all<T>()) as unknown;
+    return toArray<T>(raw);
   }
 
   async queryOne<T = Record<string, unknown>>(
     sql: string,
     params: readonly unknown[] = [],
   ): Promise<T | null> {
-    const row = await this.d1.prepare(sql).bind(...params).first<T>();
+    const row = await prepare(this.d1, sql, params).first<T>();
     return row ?? null;
   }
 
@@ -49,16 +70,17 @@ export class D1SmartDb implements SmartDb {
     sql: string,
     params: readonly unknown[] = [],
   ): Promise<RunResult> {
-    const result = await this.d1.prepare(sql).bind(...params).run();
+    const result = await prepare(this.d1, sql, params).run();
     return {
-      changes: result.meta?.changes ?? 0,
-      lastInsertRowid: result.meta?.last_row_id ?? null,
+      changes: result?.meta?.changes ?? 0,
+      lastInsertRowid: result?.meta?.last_row_id ?? null,
     };
   }
 
   async batch(statements: readonly BatchStatement[]): Promise<void> {
+    if (statements.length === 0) return;
     const stmts = statements.map((s) =>
-      this.d1.prepare(s.sql).bind(...(s.params ?? [])),
+      prepare(this.d1, s.sql, s.params ?? []),
     );
     await this.d1.batch(stmts);
   }
