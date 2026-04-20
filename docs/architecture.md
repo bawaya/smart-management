@@ -8,13 +8,72 @@
 | Language | TypeScript (strict mode) |
 | Styling | Tailwind CSS 3 |
 | Database (dev) | better-sqlite3 (מקומי, קובץ) |
-| Database (prod, מתוכנן) | Cloudflare D1 (SQLite compatible) |
+| Database (prod) | Cloudflare D1 (SQLite compatible) — מוטמע, ראה [cloudflare-migration.md](cloudflare-migration.md) |
 | Auth | jose (JWT) + bcryptjs (hashing) |
 | Testing | Vitest (יחידה) |
 | PWA | next-pwa (Service Worker + manifest) |
 | Icons build | sharp (SVG → PNG) |
 
-**Server runtime**: Node.js (לא Edge, כי better-sqlite3 הוא native module). Middleware רץ ב-Edge (רק verify JWT).
+**Server runtime** (local dev): Node.js עם better-sqlite3. Middleware רץ ב-Edge (רק verify JWT).
+**Server runtime** (production CF Pages): Workers/Edge עם D1 — `@cloudflare/next-on-pages` + `nodejs_compat` compatibility flag ממירים את ה-Node runtime פונקציות אוטומטית.
+
+## Database Layer (SmartDb)
+
+המערכת חשופה לקוד ה-application דרך ממשק אחיד בשם `SmartDb` (מוגדר ב-[src/lib/db/types.ts](../src/lib/db/types.ts)). ה-adapter הנכון נבחר לפי `NODE_ENV`:
+
+```
+Application (48 call sites) ──┐
+                              │ db.query / queryOne / run / batch / exec
+                              ▼
+                       SmartDb interface
+                              │
+             ┌────────────────┴────────────────┐
+             ▼                                 ▼
+    SqliteSmartDb                         D1SmartDb
+   (sqlite-adapter.ts)                 (d1-adapter.ts)
+   better-sqlite3                   Cloudflare D1 via
+   → data/dev.db (dev)              getRequestContext()
+                                    → env.DB (prod)
+```
+
+### SmartDb methods
+
+| Method | תיאור |
+|--------|-------|
+| `query<T>(sql, params?)` | SELECT → `Promise<T[]>` |
+| `queryOne<T>(sql, params?)` | SELECT של שורה יחידה → `Promise<T \| null>` |
+| `run(sql, params?)` | INSERT/UPDATE/DELETE → `Promise<{changes, lastInsertRowid}>` |
+| `batch(statements)` | רשימת `{sql, params}` מבוצעים אטומית — מחליף transactions ל-D1 |
+| `exec(sql)` | SQL גולמי (ל-migrations) |
+
+דוגמה:
+```ts
+const db = getDb();
+const rows = await db.query<{ id: string; name: string }>(
+  'SELECT id, name FROM clients WHERE tenant_id = ? AND is_active = 1',
+  [tenantId],
+);
+
+await db.batch([
+  { sql: 'INSERT INTO daily_logs (...) VALUES (?, ...)', params: [...] },
+  { sql: 'INSERT INTO worker_assignments (...) VALUES (?, ...)', params: [...] },
+]);
+```
+
+### `getDb()` — בחירת ה-adapter
+
+הפונקציה משתמשת ב-`require()` בתוך ענפי `if (NODE_ENV === 'production')` כדי שh-webpack ימחק את ה-adapter הלא-רלוונטי ב-tree-shaking. ב-dev — רק SqliteSmartDb ב-bundle. ב-prod — רק D1SmartDb. `better-sqlite3` (native) לעולם לא נכנס ל-bundle של production.
+
+### `generateId()` — IDs ידידותיים ל-Edge
+
+[src/lib/utils/id.ts](../src/lib/utils/id.ts) מגדיר:
+```ts
+export function generateId(): string {
+  return crypto.randomUUID().replace(/-/g, '');
+}
+```
+
+`crypto` הוא global ב-Node 19+, Cloudflare Workers, וכל Edge runtime. מחזיר 32 תווי hex (128 bits מ-UUID v4 בלי מקפים) — תואם למה ש-`randomBytes(16).toString('hex')` החזיר לפני ההעברה.
 
 ## מבנה תיקיות
 

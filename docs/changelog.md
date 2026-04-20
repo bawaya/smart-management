@@ -4,6 +4,35 @@
 
 ---
 
+## [1.1.0] — 2026-04-20 — Cloudflare Migration
+
+העברה מ-better-sqlite3 (Node.js בלבד) ל-Cloudflare D1 (Edge-ready) דרך adapter משותף. בלי שינוי ב-UI, ב-business logic, או ב-schema. פרטים מלאים: [cloudflare-migration.md](cloudflare-migration.md).
+
+### Phase A — Code Changes (6 commits)
+
+- **Commit 1** — Cloudflare infrastructure: `wrangler.toml`, `SmartDb` interface, `SqliteSmartDb` + `D1SmartDb` adapters, `@cloudflare/next-on-pages` + `wrangler` dev deps, `pages:*` npm scripts, `setupDevPlatform` ב-next.config.
+- **Commit 2** — Transactions → `batch()`: החלפת 8 מקומות `BEGIN/COMMIT/ROLLBACK` ב-`db.batch([...])` (daily-log, budget, invoices, finance). הוספת pre-checks ב-SELECT איפה שנדרש לוודא רשומה קיימת לפני UPDATE.
+- **Commit 3** — לוגו → base64: ניתוב `node:fs` → שני settings חדשים (`company_logo_base64`, `company_logo_mime`). schema seed נגע (18 → 20 שורות settings).
+- **Commit 4** — API migration: ~193 call sites מ-`prepare().bind().all/first/run()` ל-`db.query/queryOne/run`. הוסר `prepare()` + `Statement` מה-SmartDb interface. הרצה מקבילית של 4 subagents.
+- **Commit 5** — Edge compat + docs: `node:crypto` `randomBytes` → Web Crypto `crypto.randomUUID()` (shared `src/lib/utils/id.ts`). `serverComponentsExternalPackages: ['better-sqlite3']` ב-next.config. `src/env.d.ts` עם `CloudflareEnv`. `README.md` עם פקודות ה-deploy.
+- **Commit 6** — תיעוד + cleanup: מסמך זה, `cloudflare-migration.md`, עדכון architecture.md.
+
+### מה לא נעשה (נדרש לפני production)
+
+- **לא רץ `@cloudflare/next-on-pages` build** — ה-CLI לא עובד ב-Windows native (issue ידוע). הפעלה נדרשת על Linux/macOS/WSL.
+- **לא רץ `wrangler d1 create`** — דורש אישור חשבון Cloudflare של המשתמש.
+- **לא הוגדר JWT_SECRET ב-Pages secrets** — דורש אישור משתמש.
+
+אלו שלבי Phase B — מפורטים ב-README וב-cloudflare-migration.md.
+
+### Verified
+
+- `npm run build`: green
+- `npx tsc --noEmit`: clean
+- `npx vitest run`: 127/127
+
+---
+
 ## [1.0.0] — 2026-04-20
 
 שחרור ראשון של המערכת. 12 sprints, ~65 Server Actions, 27 טבלאות DB, 12 מודולים פונקציונליים. כיסוי מלא של תחומי ERP: לקוחות, ציוד, רכבים, עובדים, יומן עבודה, חשבוניות, תקציב, כספים, דוחות.
