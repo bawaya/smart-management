@@ -1,6 +1,6 @@
 'use server';
 
-import { randomBytes } from 'node:crypto';
+import { generateId } from '@/lib/utils/id';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
 import type { Role } from '@/lib/auth/rbac';
@@ -52,10 +52,6 @@ async function requireInvoiceRole(): Promise<
   const role = payload.role as Role;
   if (!INVOICE_ROLES.includes(role)) return { error: 'אין הרשאה' };
   return { tenantId: payload.tenantId, userId: payload.userId, role };
-}
-
-function generateId(): string {
-  return randomBytes(16).toString('hex');
 }
 
 function normalizeDate(v: string | undefined | null): string | null {

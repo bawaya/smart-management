@@ -32,6 +32,10 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '5mb',
     },
+    // better-sqlite3 is a native Node module — dev only. Keep it out of the
+    // Server Components bundle so Cloudflare Workers never tries to load it.
+    // The prod branch of getDb() uses D1 instead; DCE drops the dev branch.
+    serverComponentsExternalPackages: ['better-sqlite3'],
   },
 };
 
