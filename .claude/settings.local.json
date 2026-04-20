@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx tsx *)",
+      "Bash(npx tsc *)",
+      "Bash(node _audit_check.mjs)",
+      "Bash(npx vitest *)",
+      "Bash(node _auth_check.mjs)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"HTTP_STATUS=%{http_code} REDIRECT=%{redirect_url}\\\\n\" -I http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w \"HTTP_STATUS=%{http_code}\\\\n\" http://localhost:3000/login)",
+      "Bash(node scripts/generate-pwa-icons.mjs)",
+      "Bash(curl -s -o /dev/null -w \"GET_/=%{http_code} REDIRECT=%{redirect_url}\\\\n\" -I http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w \"GET_/login=%{http_code}\\\\n\" http://localhost:3000/login)",
+      "Bash(curl -s -o /dev/null -w \"GET_/manifest.json=%{http_code}\\\\n\" http://localhost:3000/manifest.json)",
+      "Bash(curl -s -o /dev/null -w \"GET_/icons/icon-192.png=%{http_code}\\\\n\" http://localhost:3000/icons/icon-192.png)",
+      "Bash(curl -s -o /dev/null -w \"GET_/offline.html=%{http_code}\\\\n\" http://localhost:3000/offline.html)",
+      "Bash(curl -s -o /dev/null -w \"manifest.json=%{http_code}\\\\n\" http://localhost:3000/manifest.json)",
+      "Bash(curl -s -o /dev/null -w \"offline.html=%{http_code}\\\\n\" http://localhost:3000/offline.html)",
+      "Bash(cd C:\\\\\\\\smart-management)",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('./node_modules/@cloudflare/next-on-pages/package.json'\\).exports, null, 2\\)\\)\")"
+    ]
+  }
+}

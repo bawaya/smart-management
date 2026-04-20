@@ -1,0 +1,620 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import {
+  type FormEvent,
+  type ReactNode,
+  useMemo,
+  useState,
+} from 'react';
+import {
+  type BankAccountPayload,
+  type BankAccountType,
+  addBankAccount,
+  toggleBankAccount,
+  updateBankAccount,
+} from './actions';
+
+export interface BankAccountRow {
+  id: string;
+  bank_name: string;
+  branch_number: string | null;
+  account_number: string;
+  account_name: string | null;
+  account_type: BankAccountType;
+  current_balance: number;
+  is_primary: number;
+  notes: string | null;
+  is_active: number;
+}
+
+interface BankAccountsManagerProps {
+  tenantId: string;
+  accounts: BankAccountRow[];
+}
+
+type Message = { kind: 'success' | 'error'; text: string } | null;
+type ModalState =
+  | { kind: 'add' }
+  | { kind: 'edit'; account: BankAccountRow }
+  | { kind: 'toggle'; account: BankAccountRow }
+  | null;
+
+const INPUT_CLASS =
+  'w-full px-3 py-2 rounded-md border border-gray-300 bg-white text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:border-transparent';
+
+const TYPE_LABELS: Record<BankAccountType, string> = {
+  checking: 'עו״ש',
+  savings: 'חיסכון',
+  business: 'עסקי',
+};
+
+function formatILS(n: number): string {
+  return `₪${n.toLocaleString('he-IL', { maximumFractionDigits: 2 })}`;
+}
+
+function Modal({
+  onClose,
+  children,
+  size = 'lg',
+}: {
+  onClose: () => void;
+  children: ReactNode;
+  size?: 'md' | 'lg' | '2xl';
+}) {
+  const widthClass =
+    size === '2xl' ? 'max-w-2xl' : size === 'md' ? 'max-w-md' : 'max-w-lg';
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className={`bg-white rounded-xl shadow-lg p-6 w-full text-right max-h-[90vh] overflow-y-auto ${widthClass}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function PrimaryButton({
+  children,
+  disabled,
+  onClick,
+  type = 'button',
+}: {
+  children: ReactNode;
+  disabled?: boolean;
+  onClick?: () => void;
+  type?: 'button' | 'submit';
+}) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+    >
+      {children}
+    </button>
+  );
+}
+
+function GhostButton({
+  children,
+  onClick,
+  disabled,
+}: {
+  children: ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
+    >
+      {children}
+    </button>
+  );
+}
+
+interface BankFormModalProps {
+  tenantId: string;
+  mode: 'add' | 'edit';
+  account?: BankAccountRow;
+  onClose: () => void;
+  onSuccess: (msg: string) => void;
+}
+
+function BankFormModal({
+  tenantId,
+  mode,
+  account,
+  onClose,
+  onSuccess,
+}: BankFormModalProps) {
+  const editing = mode === 'edit';
+  const [bankName, setBankName] = useState(account?.bank_name ?? '');
+  const [branchNumber, setBranchNumber] = useState(account?.branch_number ?? '');
+  const [accountNumber, setAccountNumber] = useState(
+    account?.account_number ?? '',
+  );
+  const [accountName, setAccountName] = useState(account?.account_name ?? '');
+  const [accountType, setAccountType] = useState<BankAccountType>(
+    account?.account_type ?? 'checking',
+  );
+  const [currentBalance, setCurrentBalance] = useState(
+    account ? String(account.current_balance) : '',
+  );
+  const [isPrimary, setIsPrimary] = useState(
+    account ? account.is_primary === 1 : false,
+  );
+  const [notes, setNotes] = useState(account?.notes ?? '');
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    if (submitting) return;
+    if (!bankName.trim()) {
+      setError('שם הבנק חובה');
+      return;
+    }
+    if (!accountNumber.trim()) {
+      setError('מספר חשבון חובה');
+      return;
+    }
+
+    const payload: BankAccountPayload = {
+      bankName,
+      branchNumber,
+      accountNumber,
+      accountName,
+      accountType,
+      currentBalance,
+      isPrimary,
+      notes,
+    };
+
+    setError(null);
+    setSubmitting(true);
+    try {
+      const res = editing
+        ? await updateBankAccount(tenantId, account!.id, payload)
+        : await addBankAccount(tenantId, payload);
+      if (!res.success) {
+        setError(res.error);
+        return;
+      }
+      onSuccess(editing ? 'הפרטים עודכנו בהצלחה' : 'החשבון נוסף בהצלחה');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Modal onClose={onClose} size="2xl">
+      <h3 className="text-lg font-bold text-gray-900 mb-4">
+        {editing ? 'עריכת חשבון בנק' : 'הוספת חשבון בנק'}
+      </h3>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              שם הבנק <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={bankName}
+              onChange={(e) => setBankName(e.target.value)}
+              required
+              className={INPUT_CLASS}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              מספר סניף
+            </label>
+            <input
+              type="text"
+              value={branchNumber}
+              onChange={(e) => setBranchNumber(e.target.value)}
+              dir="ltr"
+              className={INPUT_CLASS}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              מספר חשבון <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={accountNumber}
+              onChange={(e) => setAccountNumber(e.target.value)}
+              required
+              dir="ltr"
+              className={INPUT_CLASS}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              שם החשבון
+            </label>
+            <input
+              type="text"
+              value={accountName}
+              onChange={(e) => setAccountName(e.target.value)}
+              className={INPUT_CLASS}
+            />
+          </div>
+        </div>
+
+        <fieldset>
+          <legend className="block text-sm font-medium text-gray-700 mb-2">
+            סוג
+          </legend>
+          <div className="flex gap-2">
+            {(['checking', 'savings', 'business'] as const).map((t) => {
+              const active = accountType === t;
+              return (
+                <label
+                  key={t}
+                  className={`flex-1 px-3 py-2 rounded-md border text-center cursor-pointer text-sm font-medium transition-colors ${
+                    active
+                      ? 'bg-amber-50 border-[#f59e0b] text-[#92400e]'
+                      : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="accountType"
+                    value={t}
+                    checked={active}
+                    onChange={() => setAccountType(t)}
+                    className="sr-only"
+                  />
+                  {TYPE_LABELS[t]}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            יתרה נוכחית
+          </label>
+          <input
+            type="number"
+            value={currentBalance}
+            onChange={(e) => setCurrentBalance(e.target.value)}
+            step="0.01"
+            dir="ltr"
+            placeholder="0"
+            className={INPUT_CLASS}
+          />
+        </div>
+
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={isPrimary}
+            onChange={(e) => setIsPrimary(e.target.checked)}
+            className="w-4 h-4 accent-[#f59e0b]"
+          />
+          חשבון ראשי
+        </label>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            הערות
+          </label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            className={INPUT_CLASS}
+          />
+        </div>
+
+        {error && (
+          <div
+            role="alert"
+            className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
+          >
+            {error}
+          </div>
+        )}
+
+        <div className="flex items-center justify-end gap-2 pt-2">
+          <GhostButton onClick={onClose} disabled={submitting}>
+            ביטול
+          </GhostButton>
+          <PrimaryButton type="submit" disabled={submitting}>
+            {submitting ? 'שומר...' : 'שמור'}
+          </PrimaryButton>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function ToggleModal({
+  tenantId,
+  account,
+  onClose,
+  onSuccess,
+}: {
+  tenantId: string;
+  account: BankAccountRow;
+  onClose: () => void;
+  onSuccess: (msg: string) => void;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const activating = account.is_active !== 1;
+
+  async function handleConfirm(): Promise<void> {
+    if (submitting) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      const res = await toggleBankAccount(tenantId, account.id);
+      if (!res.success) {
+        setError(res.error);
+        return;
+      }
+      onSuccess(activating ? 'החשבון הופעל בהצלחה' : 'החשבון הושבת בהצלחה');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Modal onClose={onClose} size="md">
+      <h3 className="text-lg font-bold text-gray-900">
+        {activating ? 'הפעלת חשבון' : 'השבתת חשבון'}
+      </h3>
+      <p className="mt-2 text-sm text-gray-600">
+        {activating
+          ? `להפעיל מחדש את ${account.bank_name}?`
+          : `להשבית את ${account.bank_name}?`}
+      </p>
+      {error && (
+        <div
+          role="alert"
+          className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
+        >
+          {error}
+        </div>
+      )}
+      <div className="mt-5 flex items-center justify-end gap-2">
+        <GhostButton onClick={onClose} disabled={submitting}>
+          ביטול
+        </GhostButton>
+        <button
+          type="button"
+          onClick={handleConfirm}
+          disabled={submitting}
+          className={`px-4 py-2 rounded-md text-white font-bold text-sm transition-colors disabled:opacity-60 ${
+            activating
+              ? 'bg-green-600 hover:bg-green-700'
+              : 'bg-red-600 hover:bg-red-700'
+          }`}
+        >
+          {submitting ? '...' : activating ? 'הפעל' : 'השבת'}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function AccountCard({
+  account,
+  onEdit,
+  onToggle,
+}: {
+  account: BankAccountRow;
+  onEdit: () => void;
+  onToggle: () => void;
+}) {
+  const active = account.is_active === 1;
+  const positive = account.current_balance >= 0;
+
+  return (
+    <div
+      className={`bg-white rounded-xl border border-gray-200 shadow-sm p-5 ${
+        active ? '' : 'opacity-60'
+      }`}
+    >
+      <header className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-bold text-gray-900 truncate">
+              {account.bank_name}
+            </h3>
+            {account.is_primary === 1 && (
+              <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                ראשי
+              </span>
+            )}
+            {!active && (
+              <span className="text-xs text-gray-500">(מושבת)</span>
+            )}
+          </div>
+          <p className="text-sm text-gray-500 mt-0.5" dir="ltr">
+            {account.branch_number
+              ? `סניף ${account.branch_number} · `
+              : ''}
+            {account.account_number}
+          </p>
+          {account.account_name && (
+            <p className="text-sm text-gray-600 truncate mt-0.5">
+              {account.account_name}
+            </p>
+          )}
+          <p className="text-xs text-gray-400 mt-0.5">
+            {TYPE_LABELS[account.account_type]}
+          </p>
+        </div>
+      </header>
+
+      <p className="mt-3 text-xs text-gray-500">יתרה נוכחית</p>
+      <p
+        className={`text-2xl font-bold ${
+          positive ? 'text-green-700' : 'text-red-700'
+        }`}
+        dir="ltr"
+      >
+        {formatILS(account.current_balance)}
+      </p>
+
+      <div className="mt-3 flex items-center justify-end gap-1">
+        <GhostButton onClick={onEdit}>עריכה</GhostButton>
+        <button
+          type="button"
+          onClick={onToggle}
+          className={`px-3 py-2 rounded-md text-sm transition-colors ${
+            active
+              ? 'text-red-600 hover:bg-red-50'
+              : 'text-green-700 hover:bg-green-50'
+          }`}
+        >
+          {active ? 'השבתה' : 'הפעלה'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function BankAccountsManager({
+  tenantId,
+  accounts,
+}: BankAccountsManagerProps) {
+  const router = useRouter();
+  const [modal, setModal] = useState<ModalState>(null);
+  const [message, setMessage] = useState<Message>(null);
+
+  const stats = useMemo(() => {
+    let total = 0;
+    let activeCount = 0;
+    for (let i = 0; i < accounts.length; i++) {
+      if (accounts[i].is_active === 1) {
+        total += accounts[i].current_balance;
+        activeCount += 1;
+      }
+    }
+    return { total, activeCount };
+  }, [accounts]);
+
+  function handleSuccess(text: string): void {
+    setModal(null);
+    setMessage({ kind: 'success', text });
+    router.refresh();
+    setTimeout(() => setMessage(null), 3000);
+  }
+
+  return (
+    <div className="space-y-6">
+      <header className="flex items-center justify-between gap-2">
+        <h1 className="text-xl font-bold text-gray-900">
+          <span aria-hidden className="me-2">
+            🏦
+          </span>
+          חשבונות בנק
+        </h1>
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <p className="text-xs text-gray-500">סה״כ יתרות</p>
+          <p
+            className={`text-2xl font-bold mt-0.5 ${
+              stats.total >= 0 ? 'text-green-700' : 'text-red-700'
+            }`}
+            dir="ltr"
+          >
+            {formatILS(stats.total)}
+          </p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <p className="text-xs text-gray-500">חשבונות פעילים</p>
+          <p className="text-2xl font-bold text-gray-900 mt-0.5" dir="ltr">
+            {stats.activeCount}
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <PrimaryButton onClick={() => setModal({ kind: 'add' })}>
+          + הוסף חשבון
+        </PrimaryButton>
+      </div>
+
+      {message && (
+        <div
+          role={message.kind === 'error' ? 'alert' : 'status'}
+          className={`p-3 rounded-lg text-sm text-center border ${
+            message.kind === 'success'
+              ? 'bg-green-50 border-green-200 text-green-700'
+              : 'bg-red-50 border-red-200 text-red-700'
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
+
+      {accounts.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+          <p className="text-gray-600">
+            אין חשבונות בנק. הוסף את החשבון הראשון.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {accounts.map((a) => (
+            <AccountCard
+              key={a.id}
+              account={a}
+              onEdit={() => setModal({ kind: 'edit', account: a })}
+              onToggle={() => setModal({ kind: 'toggle', account: a })}
+            />
+          ))}
+        </div>
+      )}
+
+      {modal?.kind === 'add' && (
+        <BankFormModal
+          tenantId={tenantId}
+          mode="add"
+          onClose={() => setModal(null)}
+          onSuccess={handleSuccess}
+        />
+      )}
+      {modal?.kind === 'edit' && (
+        <BankFormModal
+          key={modal.account.id}
+          tenantId={tenantId}
+          mode="edit"
+          account={modal.account}
+          onClose={() => setModal(null)}
+          onSuccess={handleSuccess}
+        />
+      )}
+      {modal?.kind === 'toggle' && (
+        <ToggleModal
+          key={modal.account.id}
+          tenantId={tenantId}
+          account={modal.account}
+          onClose={() => setModal(null)}
+          onSuccess={handleSuccess}
+        />
+      )}
+    </div>
+  );
+}

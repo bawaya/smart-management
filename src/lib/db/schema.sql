@@ -610,7 +610,7 @@ INSERT INTO tenants (id, name, is_setup_complete) VALUES
 
 -- مستخدم admin أولي — بدون بيانات شخصية
 INSERT INTO users (id, tenant_id, username, password_hash, full_name, role, must_change_password) VALUES
-  ('admin', 'default', 'admin', 'PLACEHOLDER_HASH', '', 'owner', 1);
+  ('admin', 'default', 'admin', '$2b$12$19qWCLWoYoFBb/qGvRo6ie1MqqXLQKoranJV7uie32V4AaT0jPMfO', '', 'owner', 1);
 
 -- إعدادات افتراضية — أرقام فقط، بدون بيانات شخصية
 INSERT INTO settings (tenant_id, key, value, description) VALUES
