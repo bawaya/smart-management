@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
 import type { Role } from '@/lib/auth/rbac';
-import { getDb } from '@/lib/db';
+import { getDb, type BatchStatement } from '@/lib/db';
 
 export type DailyLogMutationResult =
   | { success: true; id?: string }
@@ -121,29 +121,27 @@ async function validateRefs(
   return { ok: true };
 }
 
-async function insertAssignments(
+function buildAssignmentStatements(
   tenantId: string,
   logId: string,
   assignments: AssignmentInput[],
-): Promise<void> {
-  const db = getDb();
-  for (let i = 0; i < assignments.length; i++) {
-    const a = assignments[i];
+): BatchStatement[] {
+  const out: BatchStatement[] = [];
+  for (const a of assignments) {
     if (!a.workerId || !a.workerId.trim()) continue;
-    await db
-      .prepare(
-        'INSERT INTO worker_assignments (id, tenant_id, daily_log_id, worker_id, daily_rate, revenue) VALUES (?, ?, ?, ?, ?, ?)',
-      )
-      .bind(
+    out.push({
+      sql: 'INSERT INTO worker_assignments (id, tenant_id, daily_log_id, worker_id, daily_rate, revenue) VALUES (?, ?, ?, ?, ?, ?)',
+      params: [
         generateId(),
         tenantId,
         logId,
         a.workerId,
         normalizeAmount(a.dailyRate),
         normalizeAmount(a.revenue),
-      )
-      .run();
+      ],
+    });
   }
+  return out;
 }
 
 export async function addDailyLogAction(
@@ -167,13 +165,10 @@ export async function addDailyLogAction(
   const logId = generateId();
   const db = getDb();
 
-  await db.exec('BEGIN');
-  try {
-    await db
-      .prepare(
-        'INSERT INTO daily_logs (id, tenant_id, log_date, client_id, equipment_id, vehicle_id, location, project_name, equipment_revenue, notes, status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      )
-      .bind(
+  await db.batch([
+    {
+      sql: 'INSERT INTO daily_logs (id, tenant_id, log_date, client_id, equipment_id, vehicle_id, location, project_name, equipment_revenue, notes, status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      params: [
         logId,
         tenantId,
         logDate,
@@ -186,15 +181,10 @@ export async function addDailyLogAction(
         emptyToNull(data.notes),
         'draft',
         userId,
-      )
-      .run();
-
-    await insertAssignments(tenantId, logId, data.assignments);
-    await db.exec('COMMIT');
-  } catch (err) {
-    await db.exec('ROLLBACK');
-    throw err;
-  }
+      ],
+    },
+    ...buildAssignmentStatements(tenantId, logId, data.assignments),
+  ]);
 
   return { success: true, id: logId };
 }
@@ -233,13 +223,10 @@ export async function updateDailyLogAction(
   const check = await validateRefs(tenantId, data);
   if (!check.ok) return { success: false, error: check.error };
 
-  await db.exec('BEGIN');
-  try {
-    await db
-      .prepare(
-        "UPDATE daily_logs SET log_date = ?, client_id = ?, equipment_id = ?, vehicle_id = ?, location = ?, project_name = ?, equipment_revenue = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-      )
-      .bind(
+  await db.batch([
+    {
+      sql: "UPDATE daily_logs SET log_date = ?, client_id = ?, equipment_id = ?, vehicle_id = ?, location = ?, project_name = ?, equipment_revenue = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+      params: [
         logDate,
         data.clientId,
         data.equipmentId,
@@ -250,20 +237,14 @@ export async function updateDailyLogAction(
         emptyToNull(data.notes),
         logId,
         tenantId,
-      )
-      .run();
-
-    await db
-      .prepare('DELETE FROM worker_assignments WHERE daily_log_id = ?')
-      .bind(logId)
-      .run();
-
-    await insertAssignments(tenantId, logId, data.assignments);
-    await db.exec('COMMIT');
-  } catch (err) {
-    await db.exec('ROLLBACK');
-    throw err;
-  }
+      ],
+    },
+    {
+      sql: 'DELETE FROM worker_assignments WHERE daily_log_id = ?',
+      params: [logId],
+    },
+    ...buildAssignmentStatements(tenantId, logId, data.assignments),
+  ]);
 
   return { success: true, id: logId };
 }

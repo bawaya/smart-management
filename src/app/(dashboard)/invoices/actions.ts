@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
 import type { Role } from '@/lib/auth/rbac';
-import { getDb } from '@/lib/db';
+import { getDb, type BatchStatement } from '@/lib/db';
 
 export type InvoiceStatus =
   | 'draft'
@@ -228,125 +228,115 @@ export async function generateInvoiceAction(
   const placeholders = summary.logIds.map(() => '?').join(', ');
 
   const db = getDb();
-  await db.exec('BEGIN');
-  try {
-    await db
-      .prepare(
-        `INSERT INTO invoices (
+
+  // Reads happen outside the batch — the logs/assignments are stable because
+  // computeSummary just validated they're in 'confirmed' status, and the
+  // batch will flip them to 'invoiced' atomically.
+  const logs = await db
+    .prepare(
+      `SELECT dl.id, dl.log_date, dl.equipment_revenue,
+              e.name AS equipment_name
+       FROM daily_logs dl
+       JOIN equipment e ON e.id = dl.equipment_id
+       WHERE dl.id IN (${placeholders})`,
+    )
+    .bind(...summary.logIds)
+    .all<{
+      id: string;
+      log_date: string;
+      equipment_revenue: number;
+      equipment_name: string;
+    }>();
+
+  const assignments = await db
+    .prepare(
+      `SELECT wa.daily_log_id, wa.revenue,
+              w.full_name AS worker_name, dl.log_date
+       FROM worker_assignments wa
+       JOIN daily_logs dl ON dl.id = wa.daily_log_id
+       JOIN workers w ON w.id = wa.worker_id
+       WHERE wa.daily_log_id IN (${placeholders})`,
+    )
+    .bind(...summary.logIds)
+    .all<{
+      daily_log_id: string;
+      revenue: number;
+      worker_name: string;
+      log_date: string;
+    }>();
+
+  const statements: BatchStatement[] = [];
+
+  statements.push({
+    sql: `INSERT INTO invoices (
            id, tenant_id, invoice_number, client_id, period_start, period_end,
            total_equipment_days, total_equipment_revenue,
            total_worker_days, total_worker_revenue,
            subtotal, vat_rate, vat_amount, total,
            status, created_by
          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)`,
-      )
-      .bind(
-        invoiceId,
-        tenantId,
-        invoiceNumber,
-        clientId,
-        start,
-        end,
-        summary.equipmentDays,
-        summary.equipmentRevenue,
-        summary.workerDays,
-        summary.workersRevenue,
-        summary.subtotal,
-        summary.vatRate,
-        summary.vatAmount,
-        summary.total,
-        auth.userId,
-      )
-      .run();
+    params: [
+      invoiceId,
+      tenantId,
+      invoiceNumber,
+      clientId,
+      start,
+      end,
+      summary.equipmentDays,
+      summary.equipmentRevenue,
+      summary.workerDays,
+      summary.workersRevenue,
+      summary.subtotal,
+      summary.vatRate,
+      summary.vatAmount,
+      summary.total,
+      auth.userId,
+    ],
+  });
 
-    const logs = await db
-      .prepare(
-        `SELECT dl.id, dl.log_date, dl.equipment_revenue,
-                e.name AS equipment_name
-         FROM daily_logs dl
-         JOIN equipment e ON e.id = dl.equipment_id
-         WHERE dl.id IN (${placeholders})`,
-      )
-      .bind(...summary.logIds)
-      .all<{
-        id: string;
-        log_date: string;
-        equipment_revenue: number;
-        equipment_name: string;
-      }>();
-
-    const assignments = await db
-      .prepare(
-        `SELECT wa.daily_log_id, wa.revenue,
-                w.full_name AS worker_name, dl.log_date
-         FROM worker_assignments wa
-         JOIN daily_logs dl ON dl.id = wa.daily_log_id
-         JOIN workers w ON w.id = wa.worker_id
-         WHERE wa.daily_log_id IN (${placeholders})`,
-      )
-      .bind(...summary.logIds)
-      .all<{
-        daily_log_id: string;
-        revenue: number;
-        worker_name: string;
-        log_date: string;
-      }>();
-
-    for (let i = 0; i < logs.length; i++) {
-      const log = logs[i];
-      if (log.equipment_revenue > 0) {
-        await db
-          .prepare(
-            `INSERT INTO invoice_items
-               (id, tenant_id, invoice_id, daily_log_id, item_type, description, quantity, unit_price, total)
-             VALUES (?, ?, ?, ?, 'equipment', ?, 1, ?, ?)`,
-          )
-          .bind(
-            generateId(),
-            tenantId,
-            invoiceId,
-            log.id,
-            `${log.equipment_name} - ${log.log_date}`,
-            log.equipment_revenue,
-            log.equipment_revenue,
-          )
-          .run();
-      }
-    }
-
-    for (let i = 0; i < assignments.length; i++) {
-      const a = assignments[i];
-      await db
-        .prepare(
-          `INSERT INTO invoice_items
-             (id, tenant_id, invoice_id, daily_log_id, item_type, description, quantity, unit_price, total)
-           VALUES (?, ?, ?, ?, 'worker', ?, 1, ?, ?)`,
-        )
-        .bind(
+  for (const log of logs) {
+    if (log.equipment_revenue > 0) {
+      statements.push({
+        sql: `INSERT INTO invoice_items
+                (id, tenant_id, invoice_id, daily_log_id, item_type, description, quantity, unit_price, total)
+              VALUES (?, ?, ?, ?, 'equipment', ?, 1, ?, ?)`,
+        params: [
           generateId(),
           tenantId,
           invoiceId,
-          a.daily_log_id,
-          `${a.worker_name} - ${a.log_date}`,
-          a.revenue,
-          a.revenue,
-        )
-        .run();
+          log.id,
+          `${log.equipment_name} - ${log.log_date}`,
+          log.equipment_revenue,
+          log.equipment_revenue,
+        ],
+      });
     }
-
-    await db
-      .prepare(
-        `UPDATE daily_logs SET status = 'invoiced', updated_at = datetime('now')
-         WHERE id IN (${placeholders}) AND tenant_id = ?`,
-      )
-      .bind(...summary.logIds, tenantId)
-      .run();
-
-    await db.exec('COMMIT');
-  } catch (err) {
-    await db.exec('ROLLBACK');
-    throw err;
   }
+
+  for (const a of assignments) {
+    statements.push({
+      sql: `INSERT INTO invoice_items
+              (id, tenant_id, invoice_id, daily_log_id, item_type, description, quantity, unit_price, total)
+            VALUES (?, ?, ?, ?, 'worker', ?, 1, ?, ?)`,
+      params: [
+        generateId(),
+        tenantId,
+        invoiceId,
+        a.daily_log_id,
+        `${a.worker_name} - ${a.log_date}`,
+        a.revenue,
+        a.revenue,
+      ],
+    });
+  }
+
+  statements.push({
+    sql: `UPDATE daily_logs SET status = 'invoiced', updated_at = datetime('now')
+          WHERE id IN (${placeholders}) AND tenant_id = ?`,
+    params: [...summary.logIds, tenantId],
+  });
+
+  await db.batch(statements);
 
   return { success: true, id: invoiceId };
 }
@@ -368,44 +358,39 @@ export async function updateInvoiceStatusAction(
   const db = getDb();
 
   if (newStatus === 'cancelled') {
-    await db.exec('BEGIN');
-    try {
-      const items = await db
-        .prepare(
-          'SELECT DISTINCT daily_log_id FROM invoice_items WHERE invoice_id = ? AND tenant_id = ?',
-        )
-        .bind(invoiceId, tenantId)
-        .all<{ daily_log_id: string }>();
+    // Pre-check invoice existence since batch() doesn't expose per-statement
+    // results (so we can't check UPDATE changes count from inside the batch).
+    const invoice = await db
+      .prepare('SELECT id FROM invoices WHERE id = ? AND tenant_id = ?')
+      .bind(invoiceId, tenantId)
+      .first<{ id: string }>();
+    if (!invoice) return { success: false, error: 'חשבונית לא נמצאה' };
 
-      const result = await db
-        .prepare(
-          "UPDATE invoices SET status = 'cancelled', updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-        )
-        .bind(invoiceId, tenantId)
-        .run();
+    const items = await db
+      .prepare(
+        'SELECT DISTINCT daily_log_id FROM invoice_items WHERE invoice_id = ? AND tenant_id = ?',
+      )
+      .bind(invoiceId, tenantId)
+      .all<{ daily_log_id: string }>();
 
-      if (result.changes === 0) {
-        await db.exec('ROLLBACK');
-        return { success: false, error: 'חשבונית לא נמצאה' };
-      }
+    const statements: BatchStatement[] = [
+      {
+        sql: "UPDATE invoices SET status = 'cancelled', updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+        params: [invoiceId, tenantId],
+      },
+    ];
 
-      if (items.length > 0) {
-        const ids = items.map((r) => r.daily_log_id);
-        const placeholders = ids.map(() => '?').join(', ');
-        await db
-          .prepare(
-            `UPDATE daily_logs SET status = 'confirmed', updated_at = datetime('now')
-             WHERE id IN (${placeholders}) AND tenant_id = ?`,
-          )
-          .bind(...ids, tenantId)
-          .run();
-      }
-
-      await db.exec('COMMIT');
-    } catch (err) {
-      await db.exec('ROLLBACK');
-      throw err;
+    if (items.length > 0) {
+      const ids = items.map((r) => r.daily_log_id);
+      const placeholders = ids.map(() => '?').join(', ');
+      statements.push({
+        sql: `UPDATE daily_logs SET status = 'confirmed', updated_at = datetime('now')
+              WHERE id IN (${placeholders}) AND tenant_id = ?`,
+        params: [...ids, tenantId],
+      });
     }
+
+    await db.batch(statements);
     return { success: true };
   }
 

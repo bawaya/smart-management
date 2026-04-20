@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
 import type { Role } from '@/lib/auth/rbac';
-import { getDb } from '@/lib/db';
+import { getDb, type BatchStatement } from '@/lib/db';
 
 export type FinanceMutationResult =
   | { success: true; id?: string }
@@ -281,26 +281,20 @@ function normalizeLastFour(v: string): string {
   return digits;
 }
 
-async function clearOtherPrimaries(
+function clearOtherPrimariesStatement(
   tenantId: string,
   exceptId: string | null,
-): Promise<void> {
-  const db = getDb();
+): BatchStatement {
   if (exceptId) {
-    await db
-      .prepare(
-        "UPDATE bank_accounts SET is_primary = 0, updated_at = datetime('now') WHERE tenant_id = ? AND id != ? AND is_primary = 1",
-      )
-      .bind(tenantId, exceptId)
-      .run();
-  } else {
-    await db
-      .prepare(
-        "UPDATE bank_accounts SET is_primary = 0, updated_at = datetime('now') WHERE tenant_id = ? AND is_primary = 1",
-      )
-      .bind(tenantId)
-      .run();
+    return {
+      sql: "UPDATE bank_accounts SET is_primary = 0, updated_at = datetime('now') WHERE tenant_id = ? AND id != ? AND is_primary = 1",
+      params: [tenantId, exceptId],
+    };
   }
+  return {
+    sql: "UPDATE bank_accounts SET is_primary = 0, updated_at = datetime('now') WHERE tenant_id = ? AND is_primary = 1",
+    params: [tenantId],
+  };
 }
 
 export async function addBankAccount(
@@ -318,34 +312,28 @@ export async function addBankAccount(
   if (!accountNumber) return { success: false, error: 'מספר חשבון חובה' };
 
   const id = generateId();
-  const db = getDb();
-  await db.exec('BEGIN');
-  try {
-    if (data.isPrimary) {
-      await clearOtherPrimaries(tenantId, null);
-    }
-    await db
-      .prepare(
-        'INSERT INTO bank_accounts (id, tenant_id, bank_name, branch_number, account_number, account_name, account_type, current_balance, is_primary, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      )
-      .bind(
-        id,
-        tenantId,
-        bankName,
-        emptyToNull(data.branchNumber),
-        accountNumber,
-        emptyToNull(data.accountName),
-        normalizeBankType(data.accountType),
-        normalizeNumber(data.currentBalance),
-        data.isPrimary ? 1 : 0,
-        emptyToNull(data.notes),
-      )
-      .run();
-    await db.exec('COMMIT');
-  } catch (err) {
-    await db.exec('ROLLBACK');
-    throw err;
+  const statements: BatchStatement[] = [];
+
+  if (data.isPrimary) {
+    statements.push(clearOtherPrimariesStatement(tenantId, null));
   }
+  statements.push({
+    sql: 'INSERT INTO bank_accounts (id, tenant_id, bank_name, branch_number, account_number, account_name, account_type, current_balance, is_primary, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    params: [
+      id,
+      tenantId,
+      bankName,
+      emptyToNull(data.branchNumber),
+      accountNumber,
+      emptyToNull(data.accountName),
+      normalizeBankType(data.accountType),
+      normalizeNumber(data.currentBalance),
+      data.isPrimary ? 1 : 0,
+      emptyToNull(data.notes),
+    ],
+  });
+
+  await getDb().batch(statements);
 
   return { success: true, id };
 }
@@ -367,37 +355,36 @@ export async function updateBankAccount(
   if (!accountNumber) return { success: false, error: 'מספר חשבון חובה' };
 
   const db = getDb();
-  await db.exec('BEGIN');
-  try {
-    if (data.isPrimary) {
-      await clearOtherPrimaries(tenantId, accountId);
-    }
-    const result = await db
-      .prepare(
-        "UPDATE bank_accounts SET bank_name = ?, branch_number = ?, account_number = ?, account_name = ?, account_type = ?, current_balance = ?, is_primary = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-      )
-      .bind(
-        bankName,
-        emptyToNull(data.branchNumber),
-        accountNumber,
-        emptyToNull(data.accountName),
-        normalizeBankType(data.accountType),
-        normalizeNumber(data.currentBalance),
-        data.isPrimary ? 1 : 0,
-        emptyToNull(data.notes),
-        accountId,
-        tenantId,
-      )
-      .run();
-    if (result.changes === 0) {
-      await db.exec('ROLLBACK');
-      return { success: false, error: 'החשבון לא נמצא' };
-    }
-    await db.exec('COMMIT');
-  } catch (err) {
-    await db.exec('ROLLBACK');
-    throw err;
+
+  // Pre-check: batch() has no per-statement result, so we verify existence
+  // before dispatching the writes.
+  const existing = await db
+    .prepare('SELECT id FROM bank_accounts WHERE id = ? AND tenant_id = ?')
+    .bind(accountId, tenantId)
+    .first<{ id: string }>();
+  if (!existing) return { success: false, error: 'החשבון לא נמצא' };
+
+  const statements: BatchStatement[] = [];
+  if (data.isPrimary) {
+    statements.push(clearOtherPrimariesStatement(tenantId, accountId));
   }
+  statements.push({
+    sql: "UPDATE bank_accounts SET bank_name = ?, branch_number = ?, account_number = ?, account_name = ?, account_type = ?, current_balance = ?, is_primary = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    params: [
+      bankName,
+      emptyToNull(data.branchNumber),
+      accountNumber,
+      emptyToNull(data.accountName),
+      normalizeBankType(data.accountType),
+      normalizeNumber(data.currentBalance),
+      data.isPrimary ? 1 : 0,
+      emptyToNull(data.notes),
+      accountId,
+      tenantId,
+    ],
+  });
+
+  await db.batch(statements);
 
   return { success: true, id: accountId };
 }
@@ -1400,13 +1387,10 @@ export async function addDebtPaymentAction(
   );
   const newStatus: DebtStatus = newRemaining <= 0.01 ? 'paid' : 'partial';
 
-  await db.exec('BEGIN');
-  try {
-    await db
-      .prepare(
-        'INSERT INTO debt_payments (id, tenant_id, debt_id, payment_date, amount, payment_method, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      )
-      .bind(
+  await db.batch([
+    {
+      sql: 'INSERT INTO debt_payments (id, tenant_id, debt_id, payment_date, amount, payment_method, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      params: [
         generateId(),
         tenantId,
         debtId,
@@ -1414,21 +1398,13 @@ export async function addDebtPaymentAction(
         amount,
         paymentMethod,
         auth.userId,
-      )
-      .run();
-
-    await db
-      .prepare(
-        "UPDATE debts SET remaining_amount = ?, status = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-      )
-      .bind(newRemaining, newStatus, debtId, tenantId)
-      .run();
-
-    await db.exec('COMMIT');
-  } catch (err) {
-    await db.exec('ROLLBACK');
-    throw err;
-  }
+      ],
+    },
+    {
+      sql: "UPDATE debts SET remaining_amount = ?, status = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+      params: [newRemaining, newStatus, debtId, tenantId],
+    },
+  ]);
 
   return { success: true, id: debtId };
 }

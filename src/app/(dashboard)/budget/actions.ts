@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
 import type { Role } from '@/lib/auth/rbac';
-import { getDb } from '@/lib/db';
+import { getDb, type BatchStatement } from '@/lib/db';
 import {
   BUDGET_CATEGORIES,
   type BudgetCategory,
@@ -76,40 +76,28 @@ export async function saveBudgetAction(
     if (amount > 0) cleaned.push({ category: it.category, amount });
   }
 
-  const db = getDb();
-  await db.exec('BEGIN');
-  try {
-    if (month == null) {
-      await db
-        .prepare(
-          'DELETE FROM budgets WHERE tenant_id = ? AND budget_year = ? AND budget_month IS NULL',
-        )
-        .bind(tenantId, year)
-        .run();
-    } else {
-      await db
-        .prepare(
-          'DELETE FROM budgets WHERE tenant_id = ? AND budget_year = ? AND budget_month = ?',
-        )
-        .bind(tenantId, year, month)
-        .run();
-    }
-
-    for (let i = 0; i < cleaned.length; i++) {
-      const { category, amount } = cleaned[i];
-      await db
-        .prepare(
-          'INSERT INTO budgets (id, tenant_id, budget_year, budget_month, category, planned_amount, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        )
-        .bind(generateId(), tenantId, year, month, category, amount, auth.userId)
-        .run();
-    }
-
-    await db.exec('COMMIT');
-  } catch (err) {
-    await db.exec('ROLLBACK');
-    throw err;
+  const statements: BatchStatement[] = [];
+  if (month == null) {
+    statements.push({
+      sql: 'DELETE FROM budgets WHERE tenant_id = ? AND budget_year = ? AND budget_month IS NULL',
+      params: [tenantId, year],
+    });
+  } else {
+    statements.push({
+      sql: 'DELETE FROM budgets WHERE tenant_id = ? AND budget_year = ? AND budget_month = ?',
+      params: [tenantId, year, month],
+    });
   }
+
+  for (const { category, amount } of cleaned) {
+    statements.push({
+      sql: 'INSERT INTO budgets (id, tenant_id, budget_year, budget_month, category, planned_amount, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      params: [generateId(), tenantId, year, month, category, amount, auth.userId],
+    });
+  }
+
+  const db = getDb();
+  await db.batch(statements);
 
   return { success: true };
 }
