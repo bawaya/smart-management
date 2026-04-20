@@ -4,6 +4,8 @@ import { type Role, hasPermission } from '@/lib/auth/rbac';
 import { getDb } from '@/lib/db';
 import { VehiclesManager, type VehicleRow } from './VehiclesManager';
 
+export const runtime = 'edge';
+
 export default async function VehiclesPage() {
   const requestHeaders = headers();
   const tenantId = requestHeaders.get('x-tenant-id') ?? 'default';

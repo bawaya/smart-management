@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { getDb } from '@/lib/db';
 import { SettingsNav } from './SettingsNav';
 
+export const runtime = 'edge';
+
 interface SettingRow {
   value: string;
 }

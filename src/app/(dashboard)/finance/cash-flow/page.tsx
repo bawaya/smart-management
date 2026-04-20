@@ -2,6 +2,8 @@ import { headers } from 'next/headers';
 import { getCashFlowProjection } from '@/lib/utils/cash-flow-calculations';
 import { CashFlowView } from './CashFlowView';
 
+export const runtime = 'edge';
+
 interface Props {
   searchParams: { weeks?: string };
 }

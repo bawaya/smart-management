@@ -17,6 +17,8 @@ import { type Step3Data, Step3Business } from './steps/Step3Business';
 import { type Step4Data, Step4Pricing } from './steps/Step4Pricing';
 import { Step5Summary } from './steps/Step5Summary';
 
+export const runtime = 'edge';
+
 interface Step {
   num: number;
   label: string;

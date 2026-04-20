@@ -10,6 +10,8 @@ import {
 } from '@/lib/utils/dashboard-stats';
 import { getExpiryAlerts } from '@/lib/utils/expiry-alerts';
 
+export const runtime = 'edge';
+
 interface StatCardProps {
   icon: string;
   label: string;

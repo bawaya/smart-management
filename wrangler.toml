@@ -6,4 +6,4 @@ pages_build_output_dir = ".vercel/output/static"
 [[d1_databases]]
 binding = "DB"
 database_name = "smart-management"
-database_id = "PLACEHOLDER_ID"
+database_id = "c7dae71f-891d-4ec6-9a48-1af60ab45bb2"

@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { type Role, hasPermission } from '@/lib/auth/rbac';
 import { ReportsNav } from './ReportsNav';
 
+export const runtime = 'edge';
+
 export default async function ReportsLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {

@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { verifyToken } from '@/lib/auth/jwt';
 import { SetupProvider } from './setup-context';
 
+export const runtime = 'edge';
+
 export default async function SetupLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {

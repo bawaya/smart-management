@@ -6,6 +6,8 @@ import {
   ReconciliationManager,
 } from './ReconciliationManager';
 
+export const runtime = 'edge';
+
 export default async function FinanceReconciliationPage() {
   const requestHeaders = headers();
   const tenantId = requestHeaders.get('x-tenant-id') ?? 'default';

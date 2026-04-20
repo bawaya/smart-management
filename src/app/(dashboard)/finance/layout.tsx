@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { type Role, hasPermission } from '@/lib/auth/rbac';
 import { FinanceNav } from './FinanceNav';
 
+export const runtime = 'edge';
+
 export default async function FinanceLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {

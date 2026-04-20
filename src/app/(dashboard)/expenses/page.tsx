@@ -10,6 +10,8 @@ import {
   type WorkerOption,
 } from './ExpensesManager';
 
+export const runtime = 'edge';
+
 interface SettingRow {
   value: string;
 }

@@ -2,6 +2,8 @@ import { headers } from 'next/headers';
 import { getDb } from '@/lib/db';
 import { PricingForm } from './PricingForm';
 
+export const runtime = 'edge';
+
 interface SettingRow {
   key: string;
   value: string;

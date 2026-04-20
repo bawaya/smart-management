@@ -6,6 +6,8 @@ import {
   ChecksManager,
 } from './ChecksManager';
 
+export const runtime = 'edge';
+
 export default async function FinanceChecksPage() {
   const requestHeaders = headers();
   const tenantId = requestHeaders.get('x-tenant-id') ?? 'default';

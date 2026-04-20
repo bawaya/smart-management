@@ -4,6 +4,8 @@ import { type Role, hasPermission } from '@/lib/auth/rbac';
 import { getDb } from '@/lib/db';
 import { CostAnalysisView, type VehicleCostRow } from './CostAnalysisView';
 
+export const runtime = 'edge';
+
 interface SettingRow {
   value: string;
 }

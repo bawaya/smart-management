@@ -5,6 +5,8 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { getDb } from '@/lib/db';
 import { getExpiryAlerts } from '@/lib/utils/expiry-alerts';
 
+export const runtime = 'edge';
+
 interface SettingRow {
   value: string;
 }

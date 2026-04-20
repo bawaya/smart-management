@@ -2,6 +2,8 @@ import { headers } from 'next/headers';
 import { getDb } from '@/lib/db';
 import { ClientsManager, type ClientRow } from './ClientsManager';
 
+export const runtime = 'edge';
+
 interface SettingRow {
   value: string;
 }

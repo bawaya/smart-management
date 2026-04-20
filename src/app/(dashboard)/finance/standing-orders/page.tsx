@@ -6,6 +6,8 @@ import {
   type StandingOrderRow,
 } from './StandingOrdersManager';
 
+export const runtime = 'edge';
+
 export default async function FinanceStandingOrdersPage() {
   const tenantId = headers().get('x-tenant-id') ?? 'default';
   const db = getDb();

@@ -3,6 +3,8 @@ import { getCompanyInfo } from '@/lib/utils/company-info';
 import { getFuelReportData } from '@/lib/utils/report-calculations';
 import { FuelReport } from './FuelReport';
 
+export const runtime = 'edge';
+
 interface Props {
   searchParams: { year?: string; month?: string };
 }

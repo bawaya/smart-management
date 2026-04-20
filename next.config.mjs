@@ -32,10 +32,34 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '5mb',
     },
-    // better-sqlite3 is a native Node module — dev only. Keep it out of the
-    // Server Components bundle so Cloudflare Workers never tries to load it.
-    // The prod branch of getDb() uses D1 instead; DCE drops the dev branch.
+    // Keeps the native module out of the Node-runtime Server Components
+    // bundle. Edge-runtime builds are handled separately via the webpack
+    // IgnorePlugin below — serverComponentsExternalPackages doesn't apply
+    // to the edge pipeline.
     serverComponentsExternalPackages: ['better-sqlite3'],
+  },
+
+  // better-sqlite3 is imported by src/lib/db/sqlite-adapter.ts, which the
+  // development path of getDb() reaches via require(). With process.env.
+  // NODE_ENV === 'production' in the edge build, that branch is unreachable,
+  // but webpack resolves require() calls before DCE runs — so the import
+  // graph still pulls better-sqlite3 (and its deps bindings / file-uri-to-
+  // path) into the edge bundle, and they try to require('path') which isn't
+  // available at edge.
+  //
+  // Fix: ignore better-sqlite3 and its native-loader deps in edge builds.
+  // The imports resolve to empty modules; sqlite-adapter.ts still loads but
+  // its `new Database(...)` would throw if called — and it never is in
+  // production, since getDb() branches on NODE_ENV first.
+  webpack: (config, { webpack, nextRuntime }) => {
+    if (nextRuntime === 'edge') {
+      config.plugins.push(
+        new webpack.IgnorePlugin({
+          resourceRegExp: /^(better-sqlite3|bindings|file-uri-to-path)$/,
+        }),
+      );
+    }
+    return config;
   },
 };
 

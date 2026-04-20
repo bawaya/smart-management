@@ -2,6 +2,8 @@ import { headers } from 'next/headers';
 import { getDb } from '@/lib/db';
 import { EquipmentTypesManager } from './EquipmentTypesManager';
 
+export const runtime = 'edge';
+
 interface SettingRow {
   key: string;
   value: string;

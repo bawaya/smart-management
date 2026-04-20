@@ -9,6 +9,8 @@ import {
   type InvoiceItemRow,
 } from './InvoiceDetails';
 
+export const runtime = 'edge';
+
 interface Props {
   params: { id: string };
 }

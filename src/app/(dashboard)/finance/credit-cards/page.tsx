@@ -6,6 +6,8 @@ import {
   CreditCardsManager,
 } from './CreditCardsManager';
 
+export const runtime = 'edge';
+
 export default async function FinanceCreditCardsPage() {
   const tenantId = headers().get('x-tenant-id') ?? 'default';
   const db = getDb();

@@ -2,6 +2,8 @@ import { headers } from 'next/headers';
 import { getDb } from '@/lib/db';
 import { UsersManager, type UserRow } from './UsersManager';
 
+export const runtime = 'edge';
+
 export default async function UsersPage() {
   const requestHeaders = headers();
   const tenantId = requestHeaders.get('x-tenant-id') ?? 'default';

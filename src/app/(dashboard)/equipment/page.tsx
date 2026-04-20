@@ -8,6 +8,8 @@ import {
   type EquipmentTypeOption,
 } from './EquipmentManager';
 
+export const runtime = 'edge';
+
 interface SettingRow {
   value: string;
 }

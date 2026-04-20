@@ -7,6 +7,8 @@ import {
   TransactionsManager,
 } from './TransactionsManager';
 
+export const runtime = 'edge';
+
 export default async function FinanceTransactionsPage() {
   const requestHeaders = headers();
   const tenantId = requestHeaders.get('x-tenant-id') ?? 'default';

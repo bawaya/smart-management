@@ -8,6 +8,8 @@ import {
   type VehicleOption,
 } from './FuelManager';
 
+export const runtime = 'edge';
+
 interface SettingRow {
   value: string;
 }

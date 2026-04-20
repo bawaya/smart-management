@@ -8,6 +8,8 @@ import {
 } from '@/lib/utils/budget-calculations';
 import { BudgetManager, type BudgetRow } from './BudgetManager';
 
+export const runtime = 'edge';
+
 interface SettingRow {
   value: string;
 }

@@ -3,6 +3,8 @@ import { getCompanyInfo } from '@/lib/utils/company-info';
 import { getWorkersReportData } from '@/lib/utils/report-calculations';
 import { WorkersReport } from './WorkersReport';
 
+export const runtime = 'edge';
+
 interface Props {
   searchParams: { year?: string; month?: string };
 }

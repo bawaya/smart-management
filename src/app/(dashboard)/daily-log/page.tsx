@@ -12,6 +12,8 @@ import {
   type WorkerOption,
 } from './DailyLogManager';
 
+export const runtime = 'edge';
+
 interface SettingRow {
   key: string;
   value: string;

@@ -4,6 +4,8 @@ import { type Role, hasPermission } from '@/lib/auth/rbac';
 import { getDb } from '@/lib/db';
 import { type AssignmentDetail, LogDetails, type LogDetailRow } from './LogDetails';
 
+export const runtime = 'edge';
+
 interface SettingRow {
   value: string;
 }

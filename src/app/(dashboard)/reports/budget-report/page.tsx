@@ -12,6 +12,8 @@ import {
   BudgetReport,
 } from './BudgetReport';
 
+export const runtime = 'edge';
+
 interface Props {
   searchParams: { year?: string };
 }

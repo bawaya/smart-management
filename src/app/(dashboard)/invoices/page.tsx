@@ -8,6 +8,8 @@ import {
   InvoicesManager,
 } from './InvoicesManager';
 
+export const runtime = 'edge';
+
 interface SettingRow {
   value: string;
 }
