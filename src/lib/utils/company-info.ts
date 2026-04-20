@@ -1,5 +1,3 @@
-import { readFile } from 'node:fs/promises';
-import { extname } from 'node:path';
 import { cache } from 'react';
 import { getDb } from '@/lib/db';
 
@@ -16,27 +14,18 @@ const COMPANY_KEYS = [
   'company_phone',
   'company_address',
   'company_tax_id',
-  'company_logo_path',
+  'company_logo_base64',
+  'company_logo_mime',
 ] as const;
 
-async function loadLogo(
-  logoPath: string | null | undefined,
-): Promise<string | null> {
-  const path = logoPath?.trim();
-  if (!path) return null;
-  try {
-    const buffer = await readFile(path);
-    const ext = extname(path).slice(1).toLowerCase();
-    const mime =
-      ext === 'svg'
-        ? 'image/svg+xml'
-        : ext === 'jpg' || ext === 'jpeg'
-          ? 'image/jpeg'
-          : 'image/png';
-    return `data:${mime};base64,${buffer.toString('base64')}`;
-  } catch {
-    return null;
-  }
+function buildLogoDataUrl(
+  base64: string | undefined,
+  mime: string | undefined,
+): string | null {
+  const data = base64?.trim();
+  const type = mime?.trim();
+  if (!data || !type) return null;
+  return `data:${type};base64,${data}`;
 }
 
 export const getCompanyInfo = cache(
@@ -50,13 +39,15 @@ export const getCompanyInfo = cache(
       .bind(tenantId, ...COMPANY_KEYS)
       .all<{ key: string; value: string }>();
     const map = new Map(rows.map((r) => [r.key, r.value ?? '']));
-    const logoDataUrl = await loadLogo(map.get('company_logo_path'));
     return {
       name: (map.get('company_name') ?? '').trim(),
       phone: (map.get('company_phone') ?? '').trim(),
       address: (map.get('company_address') ?? '').trim(),
       taxId: (map.get('company_tax_id') ?? '').trim(),
-      logoDataUrl,
+      logoDataUrl: buildLogoDataUrl(
+        map.get('company_logo_base64'),
+        map.get('company_logo_mime'),
+      ),
     };
   },
 );

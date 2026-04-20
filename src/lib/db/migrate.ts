@@ -4,7 +4,7 @@ import { dirname } from 'node:path';
 
 const DB_PATH = 'C:\\smart-management\\data\\dev.db';
 const SCHEMA_PATH = 'C:\\smart-management\\src\\lib\\db\\schema.sql';
-const EXPECTED_SETTINGS_ROWS = 18;
+const EXPECTED_SETTINGS_ROWS = 20;
 
 function migrate(): void {
   const dataDir = dirname(DB_PATH);
@@ -26,6 +26,16 @@ function migrate(): void {
 
   const sql = readFileSync(SCHEMA_PATH, 'utf-8');
   db.exec(sql);
+
+  // Idempotent forward-migrations — safe to re-run on an existing DB.
+  // When this script is adapted to run against D1 without a full wipe,
+  // these INSERT OR IGNOREs add any new default settings that were
+  // introduced after initial deployment.
+  db.exec(`
+    INSERT OR IGNORE INTO settings (tenant_id, key, value, description) VALUES
+      ('default', 'company_logo_base64', '', 'بيانات اللوغو base64'),
+      ('default', 'company_logo_mime', '', 'نوع MIME لصورة اللوغو');
+  `);
 
   const tables = db
     .prepare(

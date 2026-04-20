@@ -12,7 +12,7 @@ const COMPANY_KEYS = [
   'company_phone',
   'company_address',
   'company_tax_id',
-  'company_logo_path',
+  'company_logo_base64',
 ] as const;
 
 export default async function SettingsCompanyPage() {
@@ -37,7 +37,7 @@ export default async function SettingsCompanyPage() {
         phone: map.get('company_phone') ?? '',
         address: map.get('company_address') ?? '',
         taxId: map.get('company_tax_id') ?? '',
-        hasLogo: Boolean((map.get('company_logo_path') ?? '').trim()),
+        hasLogo: Boolean((map.get('company_logo_base64') ?? '').trim()),
       }}
     />
   );

@@ -1,48 +1,13 @@
-import { readFile } from 'node:fs/promises';
-import { extname } from 'node:path';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { type Role, hasPermission } from '@/lib/auth/rbac';
 import { getDb } from '@/lib/db';
+import { getCompanyInfo } from '@/lib/utils/company-info';
 import {
   type InvoiceDetailRow,
   InvoiceDetails,
   type InvoiceItemRow,
 } from './InvoiceDetails';
-
-interface SettingRow {
-  key: string;
-  value: string;
-}
-
-const COMPANY_KEYS = [
-  'company_name',
-  'company_phone',
-  'company_address',
-  'company_tax_id',
-  'company_logo_path',
-  'equipment_label_he',
-] as const;
-
-async function loadLogo(
-  logoPath: string | null | undefined,
-): Promise<string | null> {
-  const path = logoPath?.trim();
-  if (!path) return null;
-  try {
-    const buffer = await readFile(path);
-    const ext = extname(path).slice(1).toLowerCase();
-    const mime =
-      ext === 'svg'
-        ? 'image/svg+xml'
-        : ext === 'jpg' || ext === 'jpeg'
-          ? 'image/jpeg'
-          : 'image/png';
-    return `data:${mime};base64,${buffer.toString('base64')}`;
-  } catch {
-    return null;
-  }
-}
 
 interface Props {
   params: { id: string };
@@ -95,31 +60,23 @@ export default async function InvoiceDetailPage({ params }: Props) {
     .bind(id, tenantId)
     .all<InvoiceItemRow>();
 
-  const placeholders = COMPANY_KEYS.map(() => '?').join(', ');
-  const settingsRows = await db
+  const equipmentLabelRow = await db
     .prepare(
-      `SELECT key, value FROM settings WHERE tenant_id = ? AND key IN (${placeholders})`,
+      "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
     )
-    .bind(tenantId, ...COMPANY_KEYS)
-    .all<SettingRow>();
-  const settings = new Map(settingsRows.map((r) => [r.key, r.value ?? '']));
+    .bind(tenantId)
+    .first<{ value: string }>();
+  const equipmentLabel =
+    (equipmentLabelRow?.value ?? '').trim() || 'ציוד';
 
-  const logoDataUrl = await loadLogo(settings.get('company_logo_path'));
+  const company = await getCompanyInfo(tenantId);
 
   return (
     <InvoiceDetails
       invoice={invoice}
       items={items}
-      equipmentLabel={
-        (settings.get('equipment_label_he') ?? '').trim() || 'ציוד'
-      }
-      company={{
-        name: (settings.get('company_name') ?? '').trim(),
-        phone: (settings.get('company_phone') ?? '').trim(),
-        address: (settings.get('company_address') ?? '').trim(),
-        taxId: (settings.get('company_tax_id') ?? '').trim(),
-        logoDataUrl,
-      }}
+      equipmentLabel={equipmentLabel}
+      company={company}
     />
   );
 }

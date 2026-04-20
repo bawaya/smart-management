@@ -1,7 +1,5 @@
 'use server';
 
-import { mkdir, unlink, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
 import { hashPassword } from '@/lib/auth/password';
@@ -16,9 +14,13 @@ const VALID_ROLES: readonly Role[] = [
   'viewer',
 ];
 
-const LOGOS_DIR = 'C:\\smart-management\\data\\logos';
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
-const ALLOWED_LOGO_EXTS = new Set(['png', 'jpg', 'jpeg', 'svg']);
+const EXT_TO_MIME: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  svg: 'image/svg+xml',
+};
 
 export type UpdateCompanyResult =
   | { success: true }
@@ -64,19 +66,14 @@ async function requireOwner(): Promise<
   return { tenantId: payload.tenantId, userId: payload.userId };
 }
 
-function extractExtension(filename: string): string | null {
-  const match = filename.match(/\.(png|jpg|jpeg|svg)$/i);
-  if (!match) return null;
-  return match[1].toLowerCase();
-}
-
-async function writeLogo(
-  tenantId: string,
+function validateLogo(
   logoBase64: string,
   logoFileName: string,
-): Promise<{ path: string } | { error: string }> {
-  const ext = extractExtension(logoFileName);
-  if (!ext || !ALLOWED_LOGO_EXTS.has(ext)) {
+): { base64: string; mime: string } | { error: string } {
+  const match = logoFileName.match(/\.(png|jpg|jpeg|svg)$/i);
+  const ext = match?.[1].toLowerCase();
+  const mime = ext ? EXT_TO_MIME[ext] : undefined;
+  if (!mime) {
     return { error: 'סוג קובץ לא נתמך' };
   }
   const buffer = Buffer.from(logoBase64, 'base64');
@@ -86,20 +83,7 @@ async function writeLogo(
   if (buffer.length > MAX_LOGO_BYTES) {
     return { error: 'הקובץ גדול מדי' };
   }
-
-  await mkdir(LOGOS_DIR, { recursive: true });
-  const filePath = join(LOGOS_DIR, `${tenantId}.${ext}`);
-  await writeFile(filePath, buffer);
-  return { path: filePath };
-}
-
-async function safeUnlink(path: string): Promise<void> {
-  try {
-    await unlink(path);
-  } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code;
-    if (code !== 'ENOENT') throw err;
-  }
+  return { base64: logoBase64, mime };
 }
 
 export async function updateCompanyAction(
@@ -139,34 +123,26 @@ export async function updateCompanyAction(
   }
 
   if (data.logoBase64 && data.logoFileName) {
-    const result = await writeLogo(
-      tenantId,
-      data.logoBase64,
-      data.logoFileName,
-    );
+    const result = validateLogo(data.logoBase64, data.logoFileName);
     if ('error' in result) {
       return { success: false, error: result.error };
     }
     await db
       .prepare(
-        "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'company_logo_path'",
+        "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'company_logo_base64'",
       )
-      .bind(result.path, tenantId)
+      .bind(result.base64, tenantId)
       .run();
-  } else if (data.removeLogo) {
-    const current = await db
-      .prepare(
-        "SELECT value FROM settings WHERE tenant_id = ? AND key = 'company_logo_path'",
-      )
-      .bind(tenantId)
-      .first<{ value: string }>();
-    const currentPath = current?.value?.trim();
-    if (currentPath) {
-      await safeUnlink(currentPath);
-    }
     await db
       .prepare(
-        "UPDATE settings SET value = '', updated_at = datetime('now') WHERE tenant_id = ? AND key = 'company_logo_path'",
+        "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'company_logo_mime'",
+      )
+      .bind(result.mime, tenantId)
+      .run();
+  } else if (data.removeLogo) {
+    await db
+      .prepare(
+        "UPDATE settings SET value = '', updated_at = datetime('now') WHERE tenant_id = ? AND key IN ('company_logo_base64', 'company_logo_mime')",
       )
       .bind(tenantId)
       .run();

@@ -83,11 +83,11 @@ describe('schema', () => {
     expect(user?.must_change_password).toBe(1);
   });
 
-  it('seeds 18 settings rows for the default tenant', () => {
+  it('seeds 20 settings rows for the default tenant', () => {
     const row = db
       .prepare('SELECT COUNT(*) AS c FROM settings WHERE tenant_id = ?')
       .get('default') as { c: number };
-    expect(row.c).toBe(18);
+    expect(row.c).toBe(20);
   });
 
   it('tenant_id column exists on every table except tenants', () => {
