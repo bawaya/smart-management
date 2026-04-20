@@ -47,47 +47,37 @@ export default async function CostAnalysisPage() {
 
   const [labelRow, revenueRow, vehicles, fuelRows, maintenanceRows] =
     await Promise.all([
-      db
-        .prepare(
-          "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
-        )
-        .bind(tenantId)
-        .first<SettingRow>(),
-      db
-        .prepare(
-          "SELECT value FROM settings WHERE tenant_id = ? AND key = 'client_equipment_revenue'",
-        )
-        .bind(tenantId)
-        .first<SettingRow>(),
-      db
-        .prepare(
-          `SELECT id, name, license_plate, annual_insurance_cost, annual_license_cost
+      db.queryOne<SettingRow>(
+        "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
+        [tenantId],
+      ),
+      db.queryOne<SettingRow>(
+        "SELECT value FROM settings WHERE tenant_id = ? AND key = 'client_equipment_revenue'",
+        [tenantId],
+      ),
+      db.query<VehicleRow>(
+        `SELECT id, name, license_plate, annual_insurance_cost, annual_license_cost
            FROM vehicles
            WHERE tenant_id = ? AND is_active = 1
            ORDER BY name`,
-        )
-        .bind(tenantId)
-        .all<VehicleRow>(),
-      db
-        .prepare(
-          `SELECT vehicle_id, COALESCE(SUM(total_cost), 0) AS total
+        [tenantId],
+      ),
+      db.query<AggRow>(
+        `SELECT vehicle_id, COALESCE(SUM(total_cost), 0) AS total
            FROM fuel_records
            WHERE tenant_id = ? AND record_date >= date('now', '-90 days')
            GROUP BY vehicle_id`,
-        )
-        .bind(tenantId)
-        .all<AggRow>(),
-      db
-        .prepare(
-          `SELECT vehicle_id, COALESCE(SUM(amount), 0) AS total
+        [tenantId],
+      ),
+      db.query<AggRow>(
+        `SELECT vehicle_id, COALESCE(SUM(amount), 0) AS total
            FROM expenses
            WHERE tenant_id = ? AND category = 'vehicle_maintenance'
              AND expense_date >= date('now', '-90 days')
              AND vehicle_id IS NOT NULL
            GROUP BY vehicle_id`,
-        )
-        .bind(tenantId)
-        .all<AggRow>(),
+        [tenantId],
+      ),
     ]);
 
   const equipmentLabel = (labelRow?.value ?? '').trim() || 'ציוד';

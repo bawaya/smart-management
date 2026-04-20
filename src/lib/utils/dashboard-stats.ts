@@ -66,20 +66,17 @@ export const getDashboardStats = cache(
     const db = getDb();
 
     const [logsRow, workersRow, expensesRow, alerts] = await Promise.all([
-      db
-        .prepare(
-          `SELECT
+      db.queryOne<LogAggRow>(
+        `SELECT
              COALESCE(SUM(CASE WHEN status IN ('confirmed','invoiced') THEN equipment_revenue ELSE 0 END), 0) AS equipment_revenue,
              COUNT(DISTINCT log_date) AS working_days
            FROM daily_logs
            WHERE tenant_id = ?
              AND strftime('%Y-%m', log_date) = strftime('%Y-%m', 'now')`,
-        )
-        .bind(tenantId)
-        .first<LogAggRow>(),
-      db
-        .prepare(
-          `SELECT
+        [tenantId],
+      ),
+      db.queryOne<WorkersAggRow>(
+        `SELECT
              COALESCE(SUM(wa.revenue), 0) AS workers_revenue,
              COALESCE(SUM(wa.daily_rate), 0) AS workers_cost
            FROM worker_assignments wa
@@ -87,18 +84,15 @@ export const getDashboardStats = cache(
            WHERE dl.tenant_id = ?
              AND dl.status IN ('confirmed','invoiced')
              AND strftime('%Y-%m', dl.log_date) = strftime('%Y-%m', 'now')`,
-        )
-        .bind(tenantId)
-        .first<WorkersAggRow>(),
-      db
-        .prepare(
-          `SELECT COALESCE(SUM(amount), 0) AS expenses_sum
+        [tenantId],
+      ),
+      db.queryOne<ExpensesAggRow>(
+        `SELECT COALESCE(SUM(amount), 0) AS expenses_sum
            FROM expenses
            WHERE tenant_id = ?
              AND strftime('%Y-%m', expense_date) = strftime('%Y-%m', 'now')`,
-        )
-        .bind(tenantId)
-        .first<ExpensesAggRow>(),
+        [tenantId],
+      ),
       getExpiryAlerts(tenantId),
     ]);
 
@@ -130,38 +124,32 @@ export const getRecentActivity = cache(
   async (tenantId: string): Promise<RecentActivity> => {
     const db = getDb();
     const [logs, invoices, expenses] = await Promise.all([
-      db
-        .prepare(
-          `SELECT dl.id, dl.log_date, dl.status, c.name AS client_name
+      db.query<RecentLog>(
+        `SELECT dl.id, dl.log_date, dl.status, c.name AS client_name
            FROM daily_logs dl
            JOIN clients c ON c.id = dl.client_id
            WHERE dl.tenant_id = ?
            ORDER BY dl.log_date DESC, dl.created_at DESC
            LIMIT 5`,
-        )
-        .bind(tenantId)
-        .all<RecentLog>(),
-      db
-        .prepare(
-          `SELECT i.id, i.invoice_number, i.total, i.status, c.name AS client_name
+        [tenantId],
+      ),
+      db.query<RecentInvoice>(
+        `SELECT i.id, i.invoice_number, i.total, i.status, c.name AS client_name
            FROM invoices i
            JOIN clients c ON c.id = i.client_id
            WHERE i.tenant_id = ?
            ORDER BY i.created_at DESC
            LIMIT 3`,
-        )
-        .bind(tenantId)
-        .all<RecentInvoice>(),
-      db
-        .prepare(
-          `SELECT id, expense_date, category, amount
+        [tenantId],
+      ),
+      db.query<RecentExpense>(
+        `SELECT id, expense_date, category, amount
            FROM expenses
            WHERE tenant_id = ?
            ORDER BY expense_date DESC, created_at DESC
            LIMIT 3`,
-        )
-        .bind(tenantId)
-        .all<RecentExpense>(),
+        [tenantId],
+      ),
     ]);
     return { logs, invoices, expenses };
   },

@@ -12,18 +12,14 @@ export async function resetSetupAction(): Promise<void> {
   if (payload.role !== 'owner') throw new Error('אין הרשאה');
 
   const db = getDb();
-  await db
-    .prepare(
-      "UPDATE settings SET value = 'false', updated_at = datetime('now') WHERE tenant_id = ? AND key = 'is_setup_complete'",
-    )
-    .bind(payload.tenantId)
-    .run();
-  await db
-    .prepare(
-      "UPDATE tenants SET is_setup_complete = 0, updated_at = datetime('now') WHERE id = ?",
-    )
-    .bind(payload.tenantId)
-    .run();
+  await db.run(
+    "UPDATE settings SET value = 'false', updated_at = datetime('now') WHERE tenant_id = ? AND key = 'is_setup_complete'",
+    [payload.tenantId],
+  );
+  await db.run(
+    "UPDATE tenants SET is_setup_complete = 0, updated_at = datetime('now') WHERE id = ?",
+    [payload.tenantId],
+  );
 
   redirect('/setup');
 }

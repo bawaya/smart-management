@@ -71,12 +71,10 @@ async function assertTypeBelongsToTenant(
   typeId: string,
 ): Promise<boolean> {
   const db = getDb();
-  const row = await db
-    .prepare(
-      'SELECT id FROM equipment_types WHERE id = ? AND tenant_id = ? AND is_active = 1',
-    )
-    .bind(typeId, tenantId)
-    .first<{ id: string }>();
+  const row = await db.queryOne<{ id: string }>(
+    'SELECT id FROM equipment_types WHERE id = ? AND tenant_id = ? AND is_active = 1',
+    [typeId, tenantId],
+  );
   return row != null;
 }
 
@@ -99,11 +97,9 @@ export async function addEquipmentAction(
   }
 
   const db = getDb();
-  await db
-    .prepare(
-      'INSERT INTO equipment (tenant_id, name, equipment_type_id, identifier, status, insurance_expiry, license_expiry, last_maintenance, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    )
-    .bind(
+  await db.run(
+    'INSERT INTO equipment (tenant_id, name, equipment_type_id, identifier, status, insurance_expiry, license_expiry, last_maintenance, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
       tenantId,
       name,
       typeId,
@@ -113,8 +109,8 @@ export async function addEquipmentAction(
       normalizeDate(data.licenseExpiry),
       normalizeDate(data.lastMaintenance),
       emptyToNull(data.notes),
-    )
-    .run();
+    ],
+  );
 
   return { success: true };
 }
@@ -140,11 +136,9 @@ export async function updateEquipmentAction(
   }
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      "UPDATE equipment SET name = ?, equipment_type_id = ?, identifier = ?, status = ?, insurance_expiry = ?, license_expiry = ?, last_maintenance = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(
+  const result = await db.run(
+    "UPDATE equipment SET name = ?, equipment_type_id = ?, identifier = ?, status = ?, insurance_expiry = ?, license_expiry = ?, last_maintenance = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [
       name,
       typeId,
       emptyToNull(data.identifier),
@@ -155,8 +149,8 @@ export async function updateEquipmentAction(
       emptyToNull(data.notes),
       equipmentId,
       tenantId,
-    )
-    .run();
+    ],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'הפריט לא נמצא' };
@@ -181,12 +175,10 @@ export async function updateEquipmentStatusAction(
   }
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      "UPDATE equipment SET status = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(newStatus, equipmentId, tenantId)
-    .run();
+  const result = await db.run(
+    "UPDATE equipment SET status = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [newStatus, equipmentId, tenantId],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'הפריט לא נמצא' };

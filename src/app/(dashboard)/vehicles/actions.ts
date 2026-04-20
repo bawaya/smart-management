@@ -80,11 +80,9 @@ export async function addVehicleAction(
   if (!plate) return { success: false, error: 'לוחית רישוי חובה' };
 
   const db = getDb();
-  await db
-    .prepare(
-      'INSERT INTO vehicles (tenant_id, name, license_plate, type, annual_insurance_cost, annual_license_cost, insurance_expiry, license_expiry, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    )
-    .bind(
+  await db.run(
+    'INSERT INTO vehicles (tenant_id, name, license_plate, type, annual_insurance_cost, annual_license_cost, insurance_expiry, license_expiry, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
       tenantId,
       name,
       plate,
@@ -94,8 +92,8 @@ export async function addVehicleAction(
       normalizeDate(data.insuranceExpiry),
       normalizeDate(data.licenseExpiry),
       emptyToNull(data.notes),
-    )
-    .run();
+    ],
+  );
 
   return { success: true };
 }
@@ -118,11 +116,9 @@ export async function updateVehicleAction(
   if (!plate) return { success: false, error: 'לוחית רישוי חובה' };
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      "UPDATE vehicles SET name = ?, license_plate = ?, type = ?, annual_insurance_cost = ?, annual_license_cost = ?, insurance_expiry = ?, license_expiry = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(
+  const result = await db.run(
+    "UPDATE vehicles SET name = ?, license_plate = ?, type = ?, annual_insurance_cost = ?, annual_license_cost = ?, insurance_expiry = ?, license_expiry = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [
       name,
       plate,
       normalizeType(data.type),
@@ -133,8 +129,8 @@ export async function updateVehicleAction(
       emptyToNull(data.notes),
       vehicleId,
       tenantId,
-    )
-    .run();
+    ],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'הרכב לא נמצא' };
@@ -155,12 +151,10 @@ export async function toggleVehicleAction(
   if (!vehicleId) return { success: false, error: 'מזהה חסר' };
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      "UPDATE vehicles SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(vehicleId, tenantId)
-    .run();
+  const result = await db.run(
+    "UPDATE vehicles SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [vehicleId, tenantId],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'הרכב לא נמצא' };

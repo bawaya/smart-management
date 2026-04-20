@@ -1,12 +1,7 @@
 import { createSqliteSmartDb } from './sqlite-adapter';
 import type { SmartDb } from './types';
 
-export type {
-  BatchStatement,
-  RunResult,
-  SmartDb,
-  Statement,
-} from './types';
+export type { BatchStatement, RunResult, SmartDb } from './types';
 
 // Returns the right adapter for the current runtime:
 // - production (Cloudflare Pages / Edge) → D1 via @cloudflare/next-on-pages

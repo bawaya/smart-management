@@ -34,12 +34,10 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
   const db = getDb();
   const tenantId = getTenantId();
 
-  const user = await db
-    .prepare(
-      'SELECT id, username, password_hash, role, must_change_password FROM users WHERE tenant_id = ? AND username = ? AND is_active = 1',
-    )
-    .bind(tenantId, username)
-    .first<UserRow>();
+  const user = await db.queryOne<UserRow>(
+    'SELECT id, username, password_hash, role, must_change_password FROM users WHERE tenant_id = ? AND username = ? AND is_active = 1',
+    [tenantId, username],
+  );
 
   if (!user) {
     return { success: false, error: INVALID_CREDENTIALS };
@@ -52,12 +50,10 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
 
   await createSession(user.id, user.role, user.username, tenantId);
 
-  const setupRow = await db
-    .prepare(
-      "SELECT value FROM settings WHERE tenant_id = ? AND key = 'is_setup_complete'",
-    )
-    .bind(tenantId)
-    .first<SettingRow>();
+  const setupRow = await db.queryOne<SettingRow>(
+    "SELECT value FROM settings WHERE tenant_id = ? AND key = 'is_setup_complete'",
+    [tenantId],
+  );
 
   return {
     success: true,

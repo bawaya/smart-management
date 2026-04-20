@@ -19,20 +19,16 @@ export default async function EquipmentTypesPage() {
 
   const db = getDb();
 
-  const settingsRows = await db
-    .prepare(
-      "SELECT key, value FROM settings WHERE tenant_id = ? AND key IN ('equipment_label_he', 'equipment_label_ar')",
-    )
-    .bind(tenantId)
-    .all<SettingRow>();
+  const settingsRows = await db.query<SettingRow>(
+    "SELECT key, value FROM settings WHERE tenant_id = ? AND key IN ('equipment_label_he', 'equipment_label_ar')",
+    [tenantId],
+  );
   const map = new Map(settingsRows.map((r) => [r.key, r.value ?? '']));
 
-  const typeRows = await db
-    .prepare(
-      'SELECT id, name_ar, name_he, sort_order FROM equipment_types WHERE tenant_id = ? AND is_active = 1 ORDER BY sort_order, name_he',
-    )
-    .bind(tenantId)
-    .all<TypeRow>();
+  const typeRows = await db.query<TypeRow>(
+    'SELECT id, name_ar, name_he, sort_order FROM equipment_types WHERE tenant_id = ? AND is_active = 1 ORDER BY sort_order, name_he',
+    [tenantId],
+  );
 
   const types = typeRows.map((row) => ({
     id: row.id,

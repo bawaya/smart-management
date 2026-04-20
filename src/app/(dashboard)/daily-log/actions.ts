@@ -70,29 +70,23 @@ async function validateRefs(
   data: DailyLogPayload,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = getDb();
-  const client = await db
-    .prepare(
-      'SELECT id FROM clients WHERE id = ? AND tenant_id = ? AND is_active = 1',
-    )
-    .bind(data.clientId, tenantId)
-    .first<{ id: string }>();
+  const client = await db.queryOne<{ id: string }>(
+    'SELECT id FROM clients WHERE id = ? AND tenant_id = ? AND is_active = 1',
+    [data.clientId, tenantId],
+  );
   if (!client) return { ok: false, error: 'לקוח לא חוקי' };
 
-  const equipment = await db
-    .prepare(
-      'SELECT id FROM equipment WHERE id = ? AND tenant_id = ? AND is_active = 1',
-    )
-    .bind(data.equipmentId, tenantId)
-    .first<{ id: string }>();
+  const equipment = await db.queryOne<{ id: string }>(
+    'SELECT id FROM equipment WHERE id = ? AND tenant_id = ? AND is_active = 1',
+    [data.equipmentId, tenantId],
+  );
   if (!equipment) return { ok: false, error: 'ציוד לא חוקי' };
 
   if (data.vehicleId) {
-    const vehicle = await db
-      .prepare(
-        'SELECT id FROM vehicles WHERE id = ? AND tenant_id = ? AND is_active = 1',
-      )
-      .bind(data.vehicleId, tenantId)
-      .first<{ id: string }>();
+    const vehicle = await db.queryOne<{ id: string }>(
+      'SELECT id FROM vehicles WHERE id = ? AND tenant_id = ? AND is_active = 1',
+      [data.vehicleId, tenantId],
+    );
     if (!vehicle) return { ok: false, error: 'רכב לא חוקי' };
   }
 
@@ -107,12 +101,10 @@ async function validateRefs(
       seen.add(id);
     }
     const placeholders = validAssignments.map(() => '?').join(', ');
-    const rows = await db
-      .prepare(
-        `SELECT id FROM workers WHERE tenant_id = ? AND is_active = 1 AND id IN (${placeholders})`,
-      )
-      .bind(tenantId, ...validAssignments.map((a) => a.workerId))
-      .all<{ id: string }>();
+    const rows = await db.query<{ id: string }>(
+      `SELECT id FROM workers WHERE tenant_id = ? AND is_active = 1 AND id IN (${placeholders})`,
+      [tenantId, ...validAssignments.map((a) => a.workerId)],
+    );
     if (rows.length !== validAssignments.length) {
       return { ok: false, error: 'עובד לא חוקי' };
     }
@@ -200,12 +192,10 @@ export async function updateDailyLogAction(
   if (!logId) return { success: false, error: 'מזהה חסר' };
 
   const db = getDb();
-  const existing = await db
-    .prepare(
-      'SELECT status, created_by FROM daily_logs WHERE id = ? AND tenant_id = ?',
-    )
-    .bind(logId, tenantId)
-    .first<{ status: string; created_by: string }>();
+  const existing = await db.queryOne<{ status: string; created_by: string }>(
+    'SELECT status, created_by FROM daily_logs WHERE id = ? AND tenant_id = ?',
+    [logId, tenantId],
+  );
 
   if (!existing) return { success: false, error: 'הרישום לא נמצא' };
   if (existing.status !== 'draft') {
@@ -259,12 +249,10 @@ export async function confirmLogAction(
   if (!logId) return { success: false, error: 'מזהה חסר' };
 
   const db = getDb();
-  const existing = await db
-    .prepare(
-      'SELECT status, created_by FROM daily_logs WHERE id = ? AND tenant_id = ?',
-    )
-    .bind(logId, tenantId)
-    .first<{ status: string; created_by: string }>();
+  const existing = await db.queryOne<{ status: string; created_by: string }>(
+    'SELECT status, created_by FROM daily_logs WHERE id = ? AND tenant_id = ?',
+    [logId, tenantId],
+  );
 
   if (!existing) return { success: false, error: 'הרישום לא נמצא' };
   if (existing.status !== 'draft') {
@@ -274,12 +262,10 @@ export async function confirmLogAction(
     return { success: false, error: 'אין הרשאה לאשר רישום של אחר' };
   }
 
-  const result = await db
-    .prepare(
-      "UPDATE daily_logs SET status = 'confirmed', updated_at = datetime('now') WHERE id = ? AND tenant_id = ? AND status = 'draft'",
-    )
-    .bind(logId, tenantId)
-    .run();
+  const result = await db.run(
+    "UPDATE daily_logs SET status = 'confirmed', updated_at = datetime('now') WHERE id = ? AND tenant_id = ? AND status = 'draft'",
+    [logId, tenantId],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'הרישום לא נמצא' };

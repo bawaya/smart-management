@@ -24,16 +24,13 @@ export default async function InvoicesPage() {
 
   const db = getDb();
 
-  const labelRow = await db
-    .prepare(
-      "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
-    )
-    .bind(tenantId)
-    .first<SettingRow>();
+  const labelRow = await db.queryOne<SettingRow>(
+    "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
+    [tenantId],
+  );
 
-  const invoices = await db
-    .prepare(
-      `SELECT
+  const invoices = await db.query<InvoiceRow>(
+    `SELECT
          i.id, i.invoice_number, i.client_id, i.period_start, i.period_end,
          i.total_equipment_days, i.total_equipment_revenue,
          i.total_worker_days, i.total_worker_revenue,
@@ -44,18 +41,15 @@ export default async function InvoicesPage() {
        JOIN clients c ON c.id = i.client_id
        WHERE i.tenant_id = ?
        ORDER BY i.created_at DESC`,
-    )
-    .bind(tenantId)
-    .all<InvoiceRow>();
+    [tenantId],
+  );
 
-  const clients = await db
-    .prepare(
-      `SELECT id, name FROM clients
+  const clients = await db.query<ClientOption>(
+    `SELECT id, name FROM clients
        WHERE tenant_id = ? AND is_active = 1
        ORDER BY name`,
-    )
-    .bind(tenantId)
-    .all<ClientOption>();
+    [tenantId],
+  );
 
   return (
     <InvoicesManager

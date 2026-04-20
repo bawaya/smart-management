@@ -58,23 +58,19 @@ export default async function BudgetPage({ searchParams }: Props) {
 
   const db = getDb();
 
-  const labelRow = await db
-    .prepare(
-      "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
-    )
-    .bind(tenantId)
-    .first<SettingRow>();
+  const labelRow = await db.queryOne<SettingRow>(
+    "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
+    [tenantId],
+  );
   const equipmentLabel = (labelRow?.value ?? '').trim() || 'ציוד';
 
   if (view === 'yearly') {
-    const monthlyBudgetRows = await db
-      .prepare(
-        `SELECT budget_month, category, planned_amount
+    const monthlyBudgetRows = await db.query<MonthlyBudgetRow>(
+      `SELECT budget_month, category, planned_amount
          FROM budgets
          WHERE tenant_id = ? AND budget_year = ? AND budget_month IS NOT NULL`,
-      )
-      .bind(tenantId, year)
-      .all<MonthlyBudgetRow>();
+      [tenantId, year],
+    );
 
     const monthlyActuals = await getMonthlyActualsForYear(tenantId, year);
 
@@ -95,20 +91,16 @@ export default async function BudgetPage({ searchParams }: Props) {
 
   const budgetRows =
     month == null
-      ? await db
-          .prepare(
-            `SELECT category, planned_amount FROM budgets
+      ? await db.query<BudgetRow>(
+          `SELECT category, planned_amount FROM budgets
              WHERE tenant_id = ? AND budget_year = ? AND budget_month IS NULL`,
-          )
-          .bind(tenantId, year)
-          .all<BudgetRow>()
-      : await db
-          .prepare(
-            `SELECT category, planned_amount FROM budgets
+          [tenantId, year],
+        )
+      : await db.query<BudgetRow>(
+          `SELECT category, planned_amount FROM budgets
              WHERE tenant_id = ? AND budget_year = ? AND budget_month = ?`,
-          )
-          .bind(tenantId, year, month)
-          .all<BudgetRow>();
+          [tenantId, year, month],
+        );
 
   const actual = await getActualAmounts(tenantId, year, month);
 

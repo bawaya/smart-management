@@ -25,9 +25,8 @@ export default async function InvoiceDetailPage({ params }: Props) {
 
   const db = getDb();
 
-  const invoice = await db
-    .prepare(
-      `SELECT
+  const invoice = await db.queryOne<InvoiceDetailRow>(
+    `SELECT
          i.id, i.invoice_number, i.period_start, i.period_end,
          i.total_equipment_days, i.total_equipment_revenue,
          i.total_worker_days, i.total_worker_revenue,
@@ -42,30 +41,25 @@ export default async function InvoiceDetailPage({ params }: Props) {
        FROM invoices i
        JOIN clients c ON c.id = i.client_id
        WHERE i.id = ? AND i.tenant_id = ?`,
-    )
-    .bind(id, tenantId)
-    .first<InvoiceDetailRow>();
+    [id, tenantId],
+  );
 
   if (!invoice) {
     notFound();
   }
 
-  const items = await db
-    .prepare(
-      `SELECT id, item_type, description, quantity, unit_price, total
+  const items = await db.query<InvoiceItemRow>(
+    `SELECT id, item_type, description, quantity, unit_price, total
        FROM invoice_items
        WHERE invoice_id = ? AND tenant_id = ?
        ORDER BY item_type, created_at`,
-    )
-    .bind(id, tenantId)
-    .all<InvoiceItemRow>();
+    [id, tenantId],
+  );
 
-  const equipmentLabelRow = await db
-    .prepare(
-      "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
-    )
-    .bind(tenantId)
-    .first<{ value: string }>();
+  const equipmentLabelRow = await db.queryOne<{ value: string }>(
+    "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
+    [tenantId],
+  );
   const equipmentLabel =
     (equipmentLabelRow?.value ?? '').trim() || 'ציוד';
 

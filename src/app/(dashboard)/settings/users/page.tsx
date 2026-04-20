@@ -8,12 +8,10 @@ export default async function UsersPage() {
   const currentUserId = requestHeaders.get('x-user-id') ?? '';
 
   const db = getDb();
-  const users = await db
-    .prepare(
-      'SELECT id, username, full_name, email, phone, role, is_active, must_change_password FROM users WHERE tenant_id = ? ORDER BY is_active DESC, username',
-    )
-    .bind(tenantId)
-    .all<UserRow>();
+  const users = await db.query<UserRow>(
+    'SELECT id, username, full_name, email, phone, role, is_active, must_change_password FROM users WHERE tenant_id = ? ORDER BY is_active DESC, username',
+    [tenantId],
+  );
 
   return (
     <UsersManager

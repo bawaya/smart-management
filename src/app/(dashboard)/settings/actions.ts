@@ -114,12 +114,10 @@ export async function updateCompanyAction(
 
   for (let i = 0; i < updates.length; i++) {
     const [key, value] = updates[i];
-    await db
-      .prepare(
-        "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = ?",
-      )
-      .bind(value, tenantId, key)
-      .run();
+    await db.run(
+      "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = ?",
+      [value, tenantId, key],
+    );
   }
 
   if (data.logoBase64 && data.logoFileName) {
@@ -127,25 +125,19 @@ export async function updateCompanyAction(
     if ('error' in result) {
       return { success: false, error: result.error };
     }
-    await db
-      .prepare(
-        "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'company_logo_base64'",
-      )
-      .bind(result.base64, tenantId)
-      .run();
-    await db
-      .prepare(
-        "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'company_logo_mime'",
-      )
-      .bind(result.mime, tenantId)
-      .run();
+    await db.run(
+      "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'company_logo_base64'",
+      [result.base64, tenantId],
+    );
+    await db.run(
+      "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'company_logo_mime'",
+      [result.mime, tenantId],
+    );
   } else if (data.removeLogo) {
-    await db
-      .prepare(
-        "UPDATE settings SET value = '', updated_at = datetime('now') WHERE tenant_id = ? AND key IN ('company_logo_base64', 'company_logo_mime')",
-      )
-      .bind(tenantId)
-      .run();
+    await db.run(
+      "UPDATE settings SET value = '', updated_at = datetime('now') WHERE tenant_id = ? AND key IN ('company_logo_base64', 'company_logo_mime')",
+      [tenantId],
+    );
   }
 
   return { success: true };
@@ -189,12 +181,10 @@ export async function updatePricingAction(
 
   for (let i = 0; i < updates.length; i++) {
     const [key, value] = updates[i];
-    await db
-      .prepare(
-        "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = ?",
-      )
-      .bind(value, tenantId, key)
-      .run();
+    await db.run(
+      "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = ?",
+      [value, tenantId, key],
+    );
   }
 
   return { success: true };
@@ -218,18 +208,14 @@ export async function updateEquipmentLabelAction(
   const ar = labelAr.trim();
 
   const db = getDb();
-  await db
-    .prepare(
-      "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'equipment_label_he'",
-    )
-    .bind(he, tenantId)
-    .run();
-  await db
-    .prepare(
-      "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'equipment_label_ar'",
-    )
-    .bind(ar, tenantId)
-    .run();
+  await db.run(
+    "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'equipment_label_he'",
+    [he, tenantId],
+  );
+  await db.run(
+    "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'equipment_label_ar'",
+    [ar, tenantId],
+  );
 
   return { success: true };
 }
@@ -250,20 +236,16 @@ export async function addEquipmentTypeAction(
   }
 
   const db = getDb();
-  const maxRow = await db
-    .prepare(
-      'SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM equipment_types WHERE tenant_id = ?',
-    )
-    .bind(tenantId)
-    .first<{ max_order: number }>();
+  const maxRow = await db.queryOne<{ max_order: number }>(
+    'SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM equipment_types WHERE tenant_id = ?',
+    [tenantId],
+  );
   const sortOrder = (maxRow?.max_order ?? -1) + 1;
 
-  await db
-    .prepare(
-      'INSERT INTO equipment_types (tenant_id, name_ar, name_he, sort_order) VALUES (?, ?, ?, ?)',
-    )
-    .bind(tenantId, clean, clean, sortOrder)
-    .run();
+  await db.run(
+    'INSERT INTO equipment_types (tenant_id, name_ar, name_he, sort_order) VALUES (?, ?, ?, ?)',
+    [tenantId, clean, clean, sortOrder],
+  );
 
   return { success: true };
 }
@@ -288,12 +270,10 @@ export async function updateEquipmentTypeAction(
   }
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      'UPDATE equipment_types SET name_ar = ?, name_he = ? WHERE id = ? AND tenant_id = ?',
-    )
-    .bind(clean, clean, typeId, tenantId)
-    .run();
+  const result = await db.run(
+    'UPDATE equipment_types SET name_ar = ?, name_he = ? WHERE id = ? AND tenant_id = ?',
+    [clean, clean, typeId, tenantId],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'הסוג לא נמצא' };
@@ -317,12 +297,10 @@ export async function deleteEquipmentTypeAction(
 
   const db = getDb();
   try {
-    const result = await db
-      .prepare(
-        'DELETE FROM equipment_types WHERE id = ? AND tenant_id = ?',
-      )
-      .bind(typeId, tenantId)
-      .run();
+    const result = await db.run(
+      'DELETE FROM equipment_types WHERE id = ? AND tenant_id = ?',
+      [typeId, tenantId],
+    );
     if (result.changes === 0) {
       return { success: false, error: 'הסוג לא נמצא' };
     }
@@ -395,11 +373,9 @@ export async function addUserAction(
   const db = getDb();
 
   try {
-    await db
-      .prepare(
-        'INSERT INTO users (tenant_id, username, password_hash, full_name, phone, email, role, must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?, 1)',
-      )
-      .bind(
+    await db.run(
+      'INSERT INTO users (tenant_id, username, password_hash, full_name, phone, email, role, must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?, 1)',
+      [
         tenantId,
         username,
         hash,
@@ -407,8 +383,8 @@ export async function addUserAction(
         emptyToNull(data.phone),
         emptyToNull(data.email),
         role,
-      )
-      .run();
+      ],
+    );
   } catch (err) {
     const code = (err as { code?: string }).code;
     if (code && code.startsWith('SQLITE_CONSTRAINT')) {
@@ -447,19 +423,17 @@ export async function updateUserAction(
   }
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      "UPDATE users SET full_name = ?, phone = ?, email = ?, role = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(
+  const result = await db.run(
+    "UPDATE users SET full_name = ?, phone = ?, email = ?, role = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [
       (data.fullName ?? '').trim(),
       emptyToNull(data.phone),
       emptyToNull(data.email),
       role,
       userId,
       tenantId,
-    )
-    .run();
+    ],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'המשתמש לא נמצא' };
@@ -485,12 +459,10 @@ export async function toggleUserAction(
   }
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      "UPDATE users SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(userId, tenantId)
-    .run();
+  const result = await db.run(
+    "UPDATE users SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [userId, tenantId],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'המשתמש לא נמצא' };
@@ -540,11 +512,9 @@ export async function addClientAction(
   }
 
   const db = getDb();
-  await db
-    .prepare(
-      'INSERT INTO clients (tenant_id, name, contact_person, phone, email, address, tax_id, equipment_daily_rate, worker_daily_rate, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    )
-    .bind(
+  await db.run(
+    'INSERT INTO clients (tenant_id, name, contact_person, phone, email, address, tax_id, equipment_daily_rate, worker_daily_rate, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
       tenantId,
       name,
       emptyToNull(data.contactPerson),
@@ -555,8 +525,8 @@ export async function addClientAction(
       rateToNullable(data.equipmentDailyRate),
       rateToNullable(data.workerDailyRate),
       emptyToNull(data.notes),
-    )
-    .run();
+    ],
+  );
 
   return { success: true };
 }
@@ -581,11 +551,9 @@ export async function updateClientAction(
   }
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      "UPDATE clients SET name = ?, contact_person = ?, phone = ?, email = ?, address = ?, tax_id = ?, equipment_daily_rate = ?, worker_daily_rate = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(
+  const result = await db.run(
+    "UPDATE clients SET name = ?, contact_person = ?, phone = ?, email = ?, address = ?, tax_id = ?, equipment_daily_rate = ?, worker_daily_rate = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [
       name,
       emptyToNull(data.contactPerson),
       emptyToNull(data.phone),
@@ -597,8 +565,8 @@ export async function updateClientAction(
       emptyToNull(data.notes),
       clientId,
       tenantId,
-    )
-    .run();
+    ],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'הלקוח לא נמצא' };
@@ -621,12 +589,10 @@ export async function toggleClientAction(
   }
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      "UPDATE clients SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(clientId, tenantId)
-    .run();
+  const result = await db.run(
+    "UPDATE clients SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [clientId, tenantId],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'הלקוח לא נמצא' };
@@ -654,12 +620,10 @@ export async function resetPasswordAction(
 
   const hash = await hashPassword(newPassword);
   const db = getDb();
-  const result = await db
-    .prepare(
-      "UPDATE users SET password_hash = ?, must_change_password = 1, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(hash, userId, tenantId)
-    .run();
+  const result = await db.run(
+    "UPDATE users SET password_hash = ?, must_change_password = 1, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [hash, userId, tenantId],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'המשתמש לא נמצא' };

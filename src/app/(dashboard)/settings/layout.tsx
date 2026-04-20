@@ -19,12 +19,10 @@ export default async function SettingsLayout({
   }
 
   const db = getDb();
-  const labelRow = await db
-    .prepare(
-      "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
-    )
-    .bind(tenantId)
-    .first<SettingRow>();
+  const labelRow = await db.queryOne<SettingRow>(
+    "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
+    [tenantId],
+  );
 
   const equipmentLabel = labelRow?.value?.trim() || 'ציוד';
 

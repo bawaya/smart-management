@@ -14,18 +14,16 @@ export default async function VehiclesPage() {
   }
 
   const db = getDb();
-  const vehicles = await db
-    .prepare(
-      `SELECT id, name, license_plate, type,
+  const vehicles = await db.query<VehicleRow>(
+    `SELECT id, name, license_plate, type,
               insurance_expiry, license_expiry,
               annual_insurance_cost, annual_license_cost,
               notes, is_active
        FROM vehicles
        WHERE tenant_id = ?
        ORDER BY is_active DESC, name`,
-    )
-    .bind(tenantId)
-    .all<VehicleRow>();
+    [tenantId],
+  );
 
   return <VehiclesManager tenantId={tenantId} vehicles={vehicles} />;
 }

@@ -61,19 +61,15 @@ export async function completeSetup(
 
   const db = getDb();
 
-  await db
-    .prepare(
-      "UPDATE settings SET value = 'true', updated_at = datetime('now') WHERE tenant_id = ? AND key = 'is_setup_complete'",
-    )
-    .bind(tenantId)
-    .run();
+  await db.run(
+    "UPDATE settings SET value = 'true', updated_at = datetime('now') WHERE tenant_id = ? AND key = 'is_setup_complete'",
+    [tenantId],
+  );
 
-  await db
-    .prepare(
-      "UPDATE tenants SET is_setup_complete = 1, updated_at = datetime('now') WHERE id = ?",
-    )
-    .bind(tenantId)
-    .run();
+  await db.run(
+    "UPDATE tenants SET is_setup_complete = 1, updated_at = datetime('now') WHERE id = ?",
+    [tenantId],
+  );
 
   return { success: true };
 }
@@ -96,12 +92,10 @@ export async function changePasswordAction(
   const db = getDb();
   const tenantId = getTenantId();
 
-  const user = await db
-    .prepare(
-      'SELECT password_hash FROM users WHERE id = ? AND tenant_id = ? AND is_active = 1',
-    )
-    .bind(userId, tenantId)
-    .first<{ password_hash: string }>();
+  const user = await db.queryOne<{ password_hash: string }>(
+    'SELECT password_hash FROM users WHERE id = ? AND tenant_id = ? AND is_active = 1',
+    [userId, tenantId],
+  );
 
   if (!user) {
     return { success: false, error: 'משתמש לא נמצא' };
@@ -113,12 +107,10 @@ export async function changePasswordAction(
   }
 
   const newHash = await hashPassword(newPassword);
-  await db
-    .prepare(
-      "UPDATE users SET password_hash = ?, must_change_password = 0, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(newHash, userId, tenantId)
-    .run();
+  await db.run(
+    "UPDATE users SET password_hash = ?, must_change_password = 0, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [newHash, userId, tenantId],
+  );
 
   return { success: true };
 }
@@ -165,12 +157,10 @@ export async function saveCompanyAction(
   ];
 
   for (const [key, value] of updates) {
-    await db
-      .prepare(
-        "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = ?",
-      )
-      .bind(value, tenantId, key)
-      .run();
+    await db.run(
+      "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = ?",
+      [value, tenantId, key],
+    );
   }
 
   if (data.logoBase64 && data.logoFileName) {
@@ -178,18 +168,14 @@ export async function saveCompanyAction(
     if ('error' in result) {
       return { success: false, error: result.error };
     }
-    await db
-      .prepare(
-        "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'company_logo_base64'",
-      )
-      .bind(result.base64, tenantId)
-      .run();
-    await db
-      .prepare(
-        "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'company_logo_mime'",
-      )
-      .bind(result.mime, tenantId)
-      .run();
+    await db.run(
+      "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'company_logo_base64'",
+      [result.base64, tenantId],
+    );
+    await db.run(
+      "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'company_logo_mime'",
+      [result.mime, tenantId],
+    );
   }
 
   return { success: true };
@@ -218,33 +204,27 @@ export async function saveBusinessAction(
 
   const db = getDb();
 
-  await db
-    .prepare(
-      "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'equipment_label_he'",
-    )
-    .bind(labelHe, tenantId)
-    .run();
+  await db.run(
+    "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'equipment_label_he'",
+    [labelHe, tenantId],
+  );
 
-  await db
-    .prepare(
-      "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'equipment_label_ar'",
-    )
-    .bind(labelAr, tenantId)
-    .run();
+  await db.run(
+    "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = 'equipment_label_ar'",
+    [labelAr, tenantId],
+  );
 
-  await db
-    .prepare('DELETE FROM equipment_types WHERE tenant_id = ?')
-    .bind(tenantId)
-    .run();
+  await db.run(
+    'DELETE FROM equipment_types WHERE tenant_id = ?',
+    [tenantId],
+  );
 
   for (let i = 0; i < cleanedTypes.length; i++) {
     const type = cleanedTypes[i];
-    await db
-      .prepare(
-        'INSERT INTO equipment_types (tenant_id, name_ar, name_he, sort_order) VALUES (?, ?, ?, ?)',
-      )
-      .bind(tenantId, type.name, type.name, i)
-      .run();
+    await db.run(
+      'INSERT INTO equipment_types (tenant_id, name_ar, name_he, sort_order) VALUES (?, ?, ?, ?)',
+      [tenantId, type.name, type.name, i],
+    );
   }
 
   return { success: true };
@@ -284,12 +264,10 @@ export async function savePricingAction(
 
   for (let i = 0; i < updates.length; i++) {
     const [key, value] = updates[i];
-    await db
-      .prepare(
-        "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = ?",
-      )
-      .bind(value, tenantId, key)
-      .run();
+    await db.run(
+      "UPDATE settings SET value = ?, updated_at = datetime('now') WHERE tenant_id = ? AND key = ?",
+      [value, tenantId, key],
+    );
   }
 
   return { success: true };

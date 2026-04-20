@@ -99,20 +99,16 @@ export default async function BudgetReportPage({ searchParams }: Props) {
   const db = getDb();
 
   const [labelRow, budgetRows, monthlyActuals, company] = await Promise.all([
-    db
-      .prepare(
-        "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
-      )
-      .bind(tenantId)
-      .first<SettingRow>(),
-    db
-      .prepare(
-        `SELECT budget_month, category, planned_amount
+    db.queryOne<SettingRow>(
+      "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
+      [tenantId],
+    ),
+    db.query<BudgetQueryRow>(
+      `SELECT budget_month, category, planned_amount
          FROM budgets
          WHERE tenant_id = ? AND budget_year = ?`,
-      )
-      .bind(tenantId, year)
-      .all<BudgetQueryRow>(),
+      [tenantId, year],
+    ),
     getMonthlyActualsForYear(tenantId, year),
     getCompanyInfo(tenantId),
   ]);

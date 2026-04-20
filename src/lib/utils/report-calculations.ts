@@ -104,18 +104,16 @@ async function getVatSummary(
     month != null
       ? `${year}-${String(month).padStart(2, '0')}-%`
       : `${year}-%`;
-  const row = await db
-    .prepare(
-      `SELECT COUNT(*) AS cnt,
+  const row = await db.queryOne<{ cnt: number; sub: number; vat: number; total: number }>(
+    `SELECT COUNT(*) AS cnt,
               COALESCE(SUM(subtotal), 0) AS sub,
               COALESCE(SUM(vat_amount), 0) AS vat,
               COALESCE(SUM(total), 0) AS total
        FROM invoices
        WHERE tenant_id = ? AND status IN ('sent', 'paid', 'partial')
          AND period_end LIKE ?`,
-    )
-    .bind(tenantId, prefix)
-    .first<{ cnt: number; sub: number; vat: number; total: number }>();
+    [tenantId, prefix],
+  );
   return {
     count: Number(row?.cnt ?? 0),
     subtotal: Number(row?.sub ?? 0),
@@ -317,9 +315,14 @@ export const getFuelReportData = cache(
     const days = daysInPeriod(year, month);
 
     const [vehicleRows, monthRows] = await Promise.all([
-      db
-        .prepare(
-          `SELECT fr.vehicle_id AS vehicle_id,
+      db.query<{
+        vehicle_id: string;
+        vehicle_name: string;
+        license_plate: string;
+        liters: number;
+        cost: number;
+      }>(
+        `SELECT fr.vehicle_id AS vehicle_id,
                   v.name AS vehicle_name,
                   v.license_plate AS license_plate,
                   COALESCE(SUM(fr.liters), 0) AS liters,
@@ -329,27 +332,18 @@ export const getFuelReportData = cache(
            WHERE fr.tenant_id = ? AND fr.record_date LIKE ?
            GROUP BY fr.vehicle_id
            ORDER BY cost DESC`,
-        )
-        .bind(tenantId, prefix)
-        .all<{
-          vehicle_id: string;
-          vehicle_name: string;
-          license_plate: string;
-          liters: number;
-          cost: number;
-        }>(),
+        [tenantId, prefix],
+      ),
       month == null
-        ? db
-            .prepare(
-              `SELECT strftime('%m', record_date) AS mon,
+        ? db.query<{ mon: string; liters: number; cost: number }>(
+            `SELECT strftime('%m', record_date) AS mon,
                       COALESCE(SUM(liters), 0) AS liters,
                       COALESCE(SUM(total_cost), 0) AS cost
                FROM fuel_records
                WHERE tenant_id = ? AND record_date LIKE ?
                GROUP BY mon`,
-            )
-            .bind(tenantId, prefix)
-            .all<{ mon: string; liters: number; cost: number }>()
+            [tenantId, prefix],
+          )
         : Promise.resolve([]),
     ]);
 
@@ -420,9 +414,14 @@ export const getWorkersReportData = cache(
     const db = getDb();
     const prefix = periodPrefix(year, month);
 
-    const rows = await db
-      .prepare(
-        `SELECT wa.worker_id AS worker_id,
+    const rows = await db.query<{
+      worker_id: string;
+      worker_name: string;
+      days: number;
+      total_cost: number;
+      total_revenue: number;
+    }>(
+      `SELECT wa.worker_id AS worker_id,
                 w.full_name AS worker_name,
                 COUNT(wa.id) AS days,
                 COALESCE(SUM(wa.daily_rate), 0) AS total_cost,
@@ -435,15 +434,8 @@ export const getWorkersReportData = cache(
            AND dl.log_date LIKE ?
          GROUP BY wa.worker_id
          ORDER BY (COALESCE(SUM(wa.revenue), 0) - COALESCE(SUM(wa.daily_rate), 0)) DESC`,
-      )
-      .bind(tenantId, prefix)
-      .all<{
-        worker_id: string;
-        worker_name: string;
-        days: number;
-        total_cost: number;
-        total_revenue: number;
-      }>();
+      [tenantId, prefix],
+    );
 
     let totalDays = 0;
     let totalCost = 0;

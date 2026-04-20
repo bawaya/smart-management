@@ -358,10 +358,10 @@ export async function updateBankAccount(
 
   // Pre-check: batch() has no per-statement result, so we verify existence
   // before dispatching the writes.
-  const existing = await db
-    .prepare('SELECT id FROM bank_accounts WHERE id = ? AND tenant_id = ?')
-    .bind(accountId, tenantId)
-    .first<{ id: string }>();
+  const existing = await db.queryOne<{ id: string }>(
+    'SELECT id FROM bank_accounts WHERE id = ? AND tenant_id = ?',
+    [accountId, tenantId],
+  );
   if (!existing) return { success: false, error: 'החשבון לא נמצא' };
 
   const statements: BatchStatement[] = [];
@@ -400,12 +400,10 @@ export async function toggleBankAccount(
   if (!accountId) return { success: false, error: 'מזהה חסר' };
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      "UPDATE bank_accounts SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(accountId, tenantId)
-    .run();
+  const result = await db.run(
+    "UPDATE bank_accounts SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [accountId, tenantId],
+  );
   if (result.changes === 0) {
     return { success: false, error: 'החשבון לא נמצא' };
   }
@@ -417,12 +415,10 @@ async function bankAccountBelongsToTenant(
   accountId: string,
 ): Promise<boolean> {
   const db = getDb();
-  const row = await db
-    .prepare(
-      'SELECT id FROM bank_accounts WHERE id = ? AND tenant_id = ? AND is_active = 1',
-    )
-    .bind(accountId, tenantId)
-    .first<{ id: string }>();
+  const row = await db.queryOne<{ id: string }>(
+    'SELECT id FROM bank_accounts WHERE id = ? AND tenant_id = ? AND is_active = 1',
+    [accountId, tenantId],
+  );
   return row != null;
 }
 
@@ -448,11 +444,9 @@ export async function addCreditCard(
 
   const id = generateId();
   const db = getDb();
-  await db
-    .prepare(
-      'INSERT INTO credit_cards (id, tenant_id, bank_account_id, card_name, last_four_digits, card_type, credit_limit, billing_day, closing_day, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    )
-    .bind(
+  await db.run(
+    'INSERT INTO credit_cards (id, tenant_id, bank_account_id, card_name, last_four_digits, card_type, credit_limit, billing_day, closing_day, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
       id,
       tenantId,
       data.bankAccountId,
@@ -463,8 +457,8 @@ export async function addCreditCard(
       normalizeDay(data.billingDay, 10),
       normalizeDay(data.closingDay, 2),
       emptyToNull(data.notes),
-    )
-    .run();
+    ],
+  );
 
   return { success: true, id };
 }
@@ -492,11 +486,9 @@ export async function updateCreditCard(
   }
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      "UPDATE credit_cards SET bank_account_id = ?, card_name = ?, last_four_digits = ?, card_type = ?, credit_limit = ?, billing_day = ?, closing_day = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(
+  const result = await db.run(
+    "UPDATE credit_cards SET bank_account_id = ?, card_name = ?, last_four_digits = ?, card_type = ?, credit_limit = ?, billing_day = ?, closing_day = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [
       data.bankAccountId,
       cardName,
       lastFour,
@@ -507,8 +499,8 @@ export async function updateCreditCard(
       emptyToNull(data.notes),
       cardId,
       tenantId,
-    )
-    .run();
+    ],
+  );
   if (result.changes === 0) {
     return { success: false, error: 'הכרטיס לא נמצא' };
   }
@@ -527,12 +519,10 @@ export async function toggleCreditCard(
   if (!cardId) return { success: false, error: 'מזהה חסר' };
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      "UPDATE credit_cards SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(cardId, tenantId)
-    .run();
+  const result = await db.run(
+    "UPDATE credit_cards SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [cardId, tenantId],
+  );
   if (result.changes === 0) {
     return { success: false, error: 'הכרטיס לא נמצא' };
   }
@@ -639,11 +629,9 @@ export async function addCheckAction(
 
   const id = generateId();
   const db = getDb();
-  await db
-    .prepare(
-      'INSERT INTO checks (id, tenant_id, check_number, bank_account_id, direction, amount, payee_or_payer, issue_date, due_date, status, category, description, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    )
-    .bind(
+  await db.run(
+    'INSERT INTO checks (id, tenant_id, check_number, bank_account_id, direction, amount, payee_or_payer, issue_date, due_date, status, category, description, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
       id,
       tenantId,
       v.checkNumber,
@@ -658,8 +646,8 @@ export async function addCheckAction(
       emptyToNull(data.description),
       emptyToNull(data.notes),
       auth.userId,
-    )
-    .run();
+    ],
+  );
 
   return { success: true, id };
 }
@@ -676,12 +664,10 @@ export async function updateCheckAction(
   if (!checkId) return { success: false, error: 'מזהה חסר' };
 
   const db = getDb();
-  const existing = await db
-    .prepare(
-      'SELECT status FROM checks WHERE id = ? AND tenant_id = ?',
-    )
-    .bind(checkId, tenantId)
-    .first<{ status: string }>();
+  const existing = await db.queryOne<{ status: string }>(
+    'SELECT status FROM checks WHERE id = ? AND tenant_id = ?',
+    [checkId, tenantId],
+  );
   if (!existing) return { success: false, error: 'השיק לא נמצא' };
   if (existing.status !== 'pending') {
     return { success: false, error: 'ניתן לערוך רק שיק ממתין' };
@@ -691,11 +677,9 @@ export async function updateCheckAction(
   if (!check.ok) return { success: false, error: check.error };
   const v = check.values;
 
-  await db
-    .prepare(
-      "UPDATE checks SET check_number = ?, bank_account_id = ?, direction = ?, amount = ?, payee_or_payer = ?, issue_date = ?, due_date = ?, category = ?, description = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(
+  await db.run(
+    "UPDATE checks SET check_number = ?, bank_account_id = ?, direction = ?, amount = ?, payee_or_payer = ?, issue_date = ?, due_date = ?, category = ?, description = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [
       v.checkNumber,
       v.bankAccountId,
       v.direction,
@@ -708,8 +692,8 @@ export async function updateCheckAction(
       emptyToNull(data.notes),
       checkId,
       tenantId,
-    )
-    .run();
+    ],
+  );
 
   return { success: true, id: checkId };
 }
@@ -878,11 +862,9 @@ export async function addStandingOrderAction(
 
   const id = generateId();
   const db = getDb();
-  await db
-    .prepare(
-      'INSERT INTO standing_orders (id, tenant_id, bank_account_id, payee_name, amount, frequency, day_of_month, category, description, start_date, end_date, next_execution, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    )
-    .bind(
+  await db.run(
+    'INSERT INTO standing_orders (id, tenant_id, bank_account_id, payee_name, amount, frequency, day_of_month, category, description, start_date, end_date, next_execution, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
       id,
       tenantId,
       v.bankAccountId,
@@ -896,8 +878,8 @@ export async function addStandingOrderAction(
       v.endDate,
       v.nextExecution,
       emptyToNull(data.notes),
-    )
-    .run();
+    ],
+  );
 
   return { success: true, id };
 }
@@ -918,11 +900,9 @@ export async function updateStandingOrderAction(
   const v = validated.values;
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      "UPDATE standing_orders SET bank_account_id = ?, payee_name = ?, amount = ?, frequency = ?, day_of_month = ?, category = ?, description = ?, start_date = ?, end_date = ?, next_execution = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(
+  const result = await db.run(
+    "UPDATE standing_orders SET bank_account_id = ?, payee_name = ?, amount = ?, frequency = ?, day_of_month = ?, category = ?, description = ?, start_date = ?, end_date = ?, next_execution = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [
       v.bankAccountId,
       v.payeeName,
       v.amount,
@@ -936,8 +916,8 @@ export async function updateStandingOrderAction(
       emptyToNull(data.notes),
       orderId,
       tenantId,
-    )
-    .run();
+    ],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'הוראת הקבע לא נמצאה' };
@@ -965,10 +945,10 @@ async function creditCardBelongsToTenant(
   cardId: string,
 ): Promise<boolean> {
   const db = getDb();
-  const row = await db
-    .prepare('SELECT id FROM credit_cards WHERE id = ? AND tenant_id = ?')
-    .bind(cardId, tenantId)
-    .first<{ id: string }>();
+  const row = await db.queryOne<{ id: string }>(
+    'SELECT id FROM credit_cards WHERE id = ? AND tenant_id = ?',
+    [cardId, tenantId],
+  );
   return row != null;
 }
 
@@ -1043,11 +1023,9 @@ export async function addTransactionAction(
 
   const id = generateId();
   const db = getDb();
-  await db
-    .prepare(
-      'INSERT INTO financial_transactions (id, tenant_id, transaction_date, transaction_type, amount, direction, bank_account_id, credit_card_id, counterparty, category, description, reference_number, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    )
-    .bind(
+  await db.run(
+    'INSERT INTO financial_transactions (id, tenant_id, transaction_date, transaction_type, amount, direction, bank_account_id, credit_card_id, counterparty, category, description, reference_number, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
       id,
       tenantId,
       v.transactionDate,
@@ -1062,8 +1040,8 @@ export async function addTransactionAction(
       emptyToNull(data.referenceNumber),
       emptyToNull(data.notes),
       auth.userId,
-    )
-    .run();
+    ],
+  );
 
   return { success: true, id };
 }
@@ -1084,11 +1062,9 @@ export async function updateTransactionAction(
   const v = validated.values;
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      'UPDATE financial_transactions SET transaction_date = ?, transaction_type = ?, amount = ?, direction = ?, bank_account_id = ?, credit_card_id = ?, counterparty = ?, category = ?, description = ?, reference_number = ?, notes = ? WHERE id = ? AND tenant_id = ?',
-    )
-    .bind(
+  const result = await db.run(
+    'UPDATE financial_transactions SET transaction_date = ?, transaction_type = ?, amount = ?, direction = ?, bank_account_id = ?, credit_card_id = ?, counterparty = ?, category = ?, description = ?, reference_number = ?, notes = ? WHERE id = ? AND tenant_id = ?',
+    [
       v.transactionDate,
       v.transactionType,
       v.amount,
@@ -1102,8 +1078,8 @@ export async function updateTransactionAction(
       emptyToNull(data.notes),
       transactionId,
       tenantId,
-    )
-    .run();
+    ],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'התנועה לא נמצאה' };
@@ -1157,11 +1133,9 @@ export async function addDebtAction(
 
   const id = generateId();
   const db = getDb();
-  await db
-    .prepare(
-      'INSERT INTO debts (id, tenant_id, debt_type, counterparty, counterparty_type, worker_id, client_id, original_amount, remaining_amount, issue_date, due_date, description, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    )
-    .bind(
+  await db.run(
+    'INSERT INTO debts (id, tenant_id, debt_type, counterparty, counterparty_type, worker_id, client_id, original_amount, remaining_amount, issue_date, due_date, description, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
       id,
       tenantId,
       debtType,
@@ -1176,8 +1150,8 @@ export async function addDebtAction(
       emptyToNull(data.description),
       emptyToNull(data.notes),
       auth.userId,
-    )
-    .run();
+    ],
+  );
 
   return { success: true, id };
 }
@@ -1194,12 +1168,13 @@ export async function updateDebtAction(
   if (!debtId) return { success: false, error: 'מזהה חסר' };
 
   const db = getDb();
-  const existing = await db
-    .prepare(
-      'SELECT original_amount, remaining_amount FROM debts WHERE id = ? AND tenant_id = ?',
-    )
-    .bind(debtId, tenantId)
-    .first<{ original_amount: number; remaining_amount: number }>();
+  const existing = await db.queryOne<{
+    original_amount: number;
+    remaining_amount: number;
+  }>(
+    'SELECT original_amount, remaining_amount FROM debts WHERE id = ? AND tenant_id = ?',
+    [debtId, tenantId],
+  );
   if (!existing) return { success: false, error: 'החוב לא נמצא' };
 
   const debtType = normalizeDebtType(data.debtType);
@@ -1219,11 +1194,9 @@ export async function updateDebtAction(
     Math.round((existing.remaining_amount + delta) * 100) / 100,
   );
 
-  const result = await db
-    .prepare(
-      "UPDATE debts SET debt_type = ?, counterparty = ?, counterparty_type = ?, worker_id = ?, client_id = ?, original_amount = ?, remaining_amount = ?, issue_date = ?, due_date = ?, description = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(
+  const result = await db.run(
+    "UPDATE debts SET debt_type = ?, counterparty = ?, counterparty_type = ?, worker_id = ?, client_id = ?, original_amount = ?, remaining_amount = ?, issue_date = ?, due_date = ?, description = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [
       debtType,
       counterparty,
       normalizeCounterpartyType(data.counterpartyType),
@@ -1237,8 +1210,8 @@ export async function updateDebtAction(
       emptyToNull(data.notes),
       debtId,
       tenantId,
-    )
-    .run();
+    ],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'החוב לא נמצא' };
@@ -1279,12 +1252,10 @@ export async function createReconciliationAction(
   }
 
   const db = getDb();
-  const account = await db
-    .prepare(
-      'SELECT current_balance FROM bank_accounts WHERE id = ? AND tenant_id = ?',
-    )
-    .bind(bankAccountId, tenantId)
-    .first<{ current_balance: number }>();
+  const account = await db.queryOne<{ current_balance: number }>(
+    'SELECT current_balance FROM bank_accounts WHERE id = ? AND tenant_id = ?',
+    [bankAccountId, tenantId],
+  );
   if (!account) return { success: false, error: 'חשבון בנק לא חוקי' };
 
   const systemBalance = Number(account.current_balance ?? 0);
@@ -1296,11 +1267,9 @@ export async function createReconciliationAction(
     Math.abs(difference) < 0.01 ? 'matched' : 'discrepancy';
 
   const id = generateId();
-  await db
-    .prepare(
-      'INSERT INTO bank_reconciliations (id, tenant_id, bank_account_id, reconciliation_date, statement_balance, system_balance, difference, status, reconciled_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    )
-    .bind(
+  await db.run(
+    'INSERT INTO bank_reconciliations (id, tenant_id, bank_account_id, reconciliation_date, statement_balance, system_balance, difference, status, reconciled_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
       id,
       tenantId,
       bankAccountId,
@@ -1310,8 +1279,8 @@ export async function createReconciliationAction(
       difference,
       status,
       auth.userId,
-    )
-    .run();
+    ],
+  );
 
   return { success: true, id };
 }
@@ -1332,12 +1301,10 @@ export async function updateReconciliationStatusAction(
   if (!status) return { success: false, error: 'סטטוס לא חוקי' };
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      'UPDATE bank_reconciliations SET status = ?, notes = ? WHERE id = ? AND tenant_id = ?',
-    )
-    .bind(status, emptyToNull(notes), reconciliationId, tenantId)
-    .run();
+  const result = await db.run(
+    'UPDATE bank_reconciliations SET status = ?, notes = ? WHERE id = ? AND tenant_id = ?',
+    [status, emptyToNull(notes), reconciliationId, tenantId],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'ההתאמה לא נמצאה' };
@@ -1366,16 +1333,14 @@ export async function addDebtPaymentAction(
   const paymentMethod = normalizePaymentMethod(method);
 
   const db = getDb();
-  const debt = await db
-    .prepare(
-      'SELECT original_amount, remaining_amount, status FROM debts WHERE id = ? AND tenant_id = ?',
-    )
-    .bind(debtId, tenantId)
-    .first<{
-      original_amount: number;
-      remaining_amount: number;
-      status: string;
-    }>();
+  const debt = await db.queryOne<{
+    original_amount: number;
+    remaining_amount: number;
+    status: string;
+  }>(
+    'SELECT original_amount, remaining_amount, status FROM debts WHERE id = ? AND tenant_id = ?',
+    [debtId, tenantId],
+  );
   if (!debt) return { success: false, error: 'החוב לא נמצא' };
   if (debt.status === 'paid' || debt.status === 'written_off') {
     return { success: false, error: 'החוב כבר נסגר' };
@@ -1420,12 +1385,10 @@ export async function deleteTransactionAction(
   if (!transactionId) return { success: false, error: 'מזהה חסר' };
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      'DELETE FROM financial_transactions WHERE id = ? AND tenant_id = ?',
-    )
-    .bind(transactionId, tenantId)
-    .run();
+  const result = await db.run(
+    'DELETE FROM financial_transactions WHERE id = ? AND tenant_id = ?',
+    [transactionId, tenantId],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'התנועה לא נמצאה' };
@@ -1445,12 +1408,10 @@ export async function toggleStandingOrderAction(
   if (!orderId) return { success: false, error: 'מזהה חסר' };
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      "UPDATE standing_orders SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(orderId, tenantId)
-    .run();
+  const result = await db.run(
+    "UPDATE standing_orders SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [orderId, tenantId],
+  );
   if (result.changes === 0) {
     return { success: false, error: 'הוראת הקבע לא נמצאה' };
   }
@@ -1481,12 +1442,10 @@ export async function updateCheckStatusAction(
   }
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      "UPDATE checks SET status = ?, bounce_reason = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(status, reason, checkId, tenantId)
-    .run();
+  const result = await db.run(
+    "UPDATE checks SET status = ?, bounce_reason = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [status, reason, checkId, tenantId],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'השיק לא נמצא' };

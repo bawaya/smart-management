@@ -66,19 +66,17 @@ export async function addWorkerAction(
 
   const db = getDb();
   try {
-    await db
-      .prepare(
-        'INSERT INTO workers (tenant_id, full_name, id_number, phone, daily_rate, notes) VALUES (?, ?, ?, ?, ?, ?)',
-      )
-      .bind(
+    await db.run(
+      'INSERT INTO workers (tenant_id, full_name, id_number, phone, daily_rate, notes) VALUES (?, ?, ?, ?, ?, ?)',
+      [
         tenantId,
         fullName,
         emptyToNull(data.idNumber),
         emptyToNull(data.phone),
         rateToNullable(data.dailyRate),
         emptyToNull(data.notes),
-      )
-      .run();
+      ],
+    );
   } catch (err) {
     if (isUniqueConstraintError(err)) {
       return { success: false, error: DUPLICATE_ID_ERROR };
@@ -106,11 +104,9 @@ export async function updateWorkerAction(
 
   const db = getDb();
   try {
-    const result = await db
-      .prepare(
-        "UPDATE workers SET full_name = ?, id_number = ?, phone = ?, daily_rate = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-      )
-      .bind(
+    const result = await db.run(
+      "UPDATE workers SET full_name = ?, id_number = ?, phone = ?, daily_rate = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+      [
         fullName,
         emptyToNull(data.idNumber),
         emptyToNull(data.phone),
@@ -118,8 +114,8 @@ export async function updateWorkerAction(
         emptyToNull(data.notes),
         workerId,
         tenantId,
-      )
-      .run();
+      ],
+    );
 
     if (result.changes === 0) {
       return { success: false, error: 'העובד לא נמצא' };
@@ -146,12 +142,10 @@ export async function toggleWorkerAction(
   if (!workerId) return { success: false, error: 'מזהה חסר' };
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      "UPDATE workers SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(workerId, tenantId)
-    .run();
+  const result = await db.run(
+    "UPDATE workers SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [workerId, tenantId],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'העובד לא נמצא' };

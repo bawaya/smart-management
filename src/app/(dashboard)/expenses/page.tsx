@@ -26,16 +26,13 @@ export default async function ExpensesPage() {
 
   const db = getDb();
 
-  const labelRow = await db
-    .prepare(
-      "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
-    )
-    .bind(tenantId)
-    .first<SettingRow>();
+  const labelRow = await db.queryOne<SettingRow>(
+    "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
+    [tenantId],
+  );
 
-  const expenses = await db
-    .prepare(
-      `SELECT
+  const expenses = await db.query<ExpenseRow>(
+    `SELECT
          e.id, e.expense_date, e.category, e.amount, e.description,
          e.vehicle_id, e.equipment_id, e.worker_id,
          e.receipt_ref, e.notes,
@@ -49,39 +46,32 @@ export default async function ExpensesPage() {
        WHERE e.tenant_id = ?
          AND e.expense_date >= date('now', '-60 days')
        ORDER BY e.expense_date DESC, e.created_at DESC`,
-    )
-    .bind(tenantId)
-    .all<ExpenseRow>();
+    [tenantId],
+  );
 
-  const vehicles = await db
-    .prepare(
-      `SELECT id, name, license_plate
+  const vehicles = await db.query<VehicleOption>(
+    `SELECT id, name, license_plate
        FROM vehicles
        WHERE tenant_id = ? AND is_active = 1
        ORDER BY name`,
-    )
-    .bind(tenantId)
-    .all<VehicleOption>();
+    [tenantId],
+  );
 
-  const equipment = await db
-    .prepare(
-      `SELECT id, name
+  const equipment = await db.query<EquipmentOption>(
+    `SELECT id, name
        FROM equipment
        WHERE tenant_id = ? AND is_active = 1 AND status != 'retired'
        ORDER BY name`,
-    )
-    .bind(tenantId)
-    .all<EquipmentOption>();
+    [tenantId],
+  );
 
-  const workers = await db
-    .prepare(
-      `SELECT id, full_name
+  const workers = await db.query<WorkerOption>(
+    `SELECT id, full_name
        FROM workers
        WHERE tenant_id = ? AND is_active = 1
        ORDER BY full_name`,
-    )
-    .bind(tenantId)
-    .all<WorkerOption>();
+    [tenantId],
+  );
 
   return (
     <ExpensesManager

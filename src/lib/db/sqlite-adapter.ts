@@ -1,10 +1,5 @@
 import Database from 'better-sqlite3';
-import type {
-  BatchStatement,
-  RunResult,
-  SmartDb,
-  Statement,
-} from './types';
+import type { BatchStatement, RunResult, SmartDb } from './types';
 
 const DEV_DB_PATH = 'data/dev.db';
 
@@ -19,46 +14,22 @@ export function openSqlite(): Database.Database {
   return devDbInstance;
 }
 
-class SqliteStatement implements Statement {
-  private params: unknown[] = [];
-
-  constructor(private readonly stmt: Database.Statement) {}
-
-  bind(...values: unknown[]): Statement {
-    this.params = values;
-    return this;
-  }
-
-  async all<T = Record<string, unknown>>(): Promise<T[]> {
-    return this.stmt.all(...this.params) as T[];
-  }
-
-  async first<T = Record<string, unknown>>(): Promise<T | null> {
-    const row = this.stmt.get(...this.params);
-    return (row as T | undefined) ?? null;
-  }
-
-  async run(): Promise<RunResult> {
-    const info = this.stmt.run(...this.params);
-    return {
-      changes: info.changes,
-      lastInsertRowid: info.lastInsertRowid ?? null,
-    };
-  }
-}
-
 export class SqliteSmartDb implements SmartDb {
   constructor(private readonly db: Database.Database) {}
-
-  prepare(sql: string): Statement {
-    return new SqliteStatement(this.db.prepare(sql));
-  }
 
   async query<T = Record<string, unknown>>(
     sql: string,
     params: readonly unknown[] = [],
   ): Promise<T[]> {
     return this.db.prepare(sql).all(...params) as T[];
+  }
+
+  async queryOne<T = Record<string, unknown>>(
+    sql: string,
+    params: readonly unknown[] = [],
+  ): Promise<T | null> {
+    const row = this.db.prepare(sql).get(...params);
+    return (row as T | undefined) ?? null;
   }
 
   async run(

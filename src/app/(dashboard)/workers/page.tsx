@@ -19,25 +19,21 @@ export default async function WorkersPage() {
 
   const db = getDb();
 
-  const rateRow = await db
-    .prepare(
-      "SELECT value FROM settings WHERE tenant_id = ? AND key = 'default_worker_daily_rate'",
-    )
-    .bind(tenantId)
-    .first<SettingRow>();
+  const rateRow = await db.queryOne<SettingRow>(
+    "SELECT value FROM settings WHERE tenant_id = ? AND key = 'default_worker_daily_rate'",
+    [tenantId],
+  );
 
   const parsed = Number((rateRow?.value ?? '').trim());
   const defaultRate = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 
-  const workers = await db
-    .prepare(
-      `SELECT id, full_name, id_number, phone, daily_rate, notes, is_active
+  const workers = await db.query<WorkerRow>(
+    `SELECT id, full_name, id_number, phone, daily_rate, notes, is_active
        FROM workers
        WHERE tenant_id = ?
        ORDER BY is_active DESC, full_name`,
-    )
-    .bind(tenantId)
-    .all<WorkerRow>();
+    [tenantId],
+  );
 
   return (
     <WorkersManager

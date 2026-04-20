@@ -32,12 +32,10 @@ export const getCompanyInfo = cache(
   async (tenantId: string): Promise<CompanyInfo> => {
     const db = getDb();
     const placeholders = COMPANY_KEYS.map(() => '?').join(', ');
-    const rows = await db
-      .prepare(
-        `SELECT key, value FROM settings WHERE tenant_id = ? AND key IN (${placeholders})`,
-      )
-      .bind(tenantId, ...COMPANY_KEYS)
-      .all<{ key: string; value: string }>();
+    const rows = await db.query<{ key: string; value: string }>(
+      `SELECT key, value FROM settings WHERE tenant_id = ? AND key IN (${placeholders})`,
+      [tenantId, ...COMPANY_KEYS],
+    );
     const map = new Map(rows.map((r) => [r.key, r.value ?? '']));
     return {
       name: (map.get('company_name') ?? '').trim(),

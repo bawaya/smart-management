@@ -32,20 +32,17 @@ export const getMonthlyActualsForYear = cache(
     const prefix = `${year}-%`;
 
     const [logsRows, workersRows, fuelRows, expensesRows] = await Promise.all([
-      db
-        .prepare(
-          `SELECT strftime('%m', log_date) AS mon,
+      db.query<{ mon: string; rev: number }>(
+        `SELECT strftime('%m', log_date) AS mon,
                   COALESCE(SUM(equipment_revenue), 0) AS rev
            FROM daily_logs
            WHERE tenant_id = ? AND status IN ('confirmed','invoiced')
              AND log_date LIKE ?
            GROUP BY mon`,
-        )
-        .bind(tenantId, prefix)
-        .all<{ mon: string; rev: number }>(),
-      db
-        .prepare(
-          `SELECT strftime('%m', dl.log_date) AS mon,
+        [tenantId, prefix],
+      ),
+      db.query<{ mon: string; revenue: number; cost: number }>(
+        `SELECT strftime('%m', dl.log_date) AS mon,
                   COALESCE(SUM(wa.revenue), 0) AS revenue,
                   COALESCE(SUM(wa.daily_rate), 0) AS cost
            FROM worker_assignments wa
@@ -53,30 +50,25 @@ export const getMonthlyActualsForYear = cache(
            WHERE dl.tenant_id = ? AND dl.status IN ('confirmed','invoiced')
              AND dl.log_date LIKE ?
            GROUP BY mon`,
-        )
-        .bind(tenantId, prefix)
-        .all<{ mon: string; revenue: number; cost: number }>(),
-      db
-        .prepare(
-          `SELECT strftime('%m', record_date) AS mon,
+        [tenantId, prefix],
+      ),
+      db.query<{ mon: string; fuel: number }>(
+        `SELECT strftime('%m', record_date) AS mon,
                   COALESCE(SUM(total_cost), 0) AS fuel
            FROM fuel_records
            WHERE tenant_id = ? AND record_date LIKE ?
            GROUP BY mon`,
-        )
-        .bind(tenantId, prefix)
-        .all<{ mon: string; fuel: number }>(),
-      db
-        .prepare(
-          `SELECT strftime('%m', expense_date) AS mon,
+        [tenantId, prefix],
+      ),
+      db.query<{ mon: string; category: string; amount: number }>(
+        `SELECT strftime('%m', expense_date) AS mon,
                   category,
                   COALESCE(SUM(amount), 0) AS amount
            FROM expenses
            WHERE tenant_id = ? AND expense_date LIKE ?
            GROUP BY mon, category`,
-        )
-        .bind(tenantId, prefix)
-        .all<{ mon: string; category: string; amount: number }>(),
+        [tenantId, prefix],
+      ),
     ]);
 
     const months: ActualAmounts[] = Array.from({ length: 12 }, () =>
@@ -157,44 +149,36 @@ export const getActualAmounts = cache(
     const prefix = datePrefix(year, month);
 
     const [logsRow, workersRow, fuelRow, expensesRows] = await Promise.all([
-      db
-        .prepare(
-          `SELECT COALESCE(SUM(equipment_revenue), 0) AS rev
+      db.queryOne<{ rev: number }>(
+        `SELECT COALESCE(SUM(equipment_revenue), 0) AS rev
            FROM daily_logs
            WHERE tenant_id = ? AND status IN ('confirmed','invoiced')
              AND log_date LIKE ?`,
-        )
-        .bind(tenantId, prefix)
-        .first<{ rev: number }>(),
-      db
-        .prepare(
-          `SELECT
+        [tenantId, prefix],
+      ),
+      db.queryOne<{ revenue: number; cost: number }>(
+        `SELECT
              COALESCE(SUM(wa.revenue), 0) AS revenue,
              COALESCE(SUM(wa.daily_rate), 0) AS cost
            FROM worker_assignments wa
            JOIN daily_logs dl ON dl.id = wa.daily_log_id
            WHERE dl.tenant_id = ? AND dl.status IN ('confirmed','invoiced')
              AND dl.log_date LIKE ?`,
-        )
-        .bind(tenantId, prefix)
-        .first<{ revenue: number; cost: number }>(),
-      db
-        .prepare(
-          `SELECT COALESCE(SUM(total_cost), 0) AS fuel
+        [tenantId, prefix],
+      ),
+      db.queryOne<{ fuel: number }>(
+        `SELECT COALESCE(SUM(total_cost), 0) AS fuel
            FROM fuel_records
            WHERE tenant_id = ? AND record_date LIKE ?`,
-        )
-        .bind(tenantId, prefix)
-        .first<{ fuel: number }>(),
-      db
-        .prepare(
-          `SELECT category, COALESCE(SUM(amount), 0) AS amount
+        [tenantId, prefix],
+      ),
+      db.query<{ category: string; amount: number }>(
+        `SELECT category, COALESCE(SUM(amount), 0) AS amount
            FROM expenses
            WHERE tenant_id = ? AND expense_date LIKE ?
            GROUP BY category`,
-        )
-        .bind(tenantId, prefix)
-        .all<{ category: string; amount: number }>(),
+        [tenantId, prefix],
+      ),
     ]);
 
     const result = makeEmpty();

@@ -77,12 +77,10 @@ async function validateVehicle(
   vehicleId: string,
 ): Promise<boolean> {
   const db = getDb();
-  const row = await db
-    .prepare(
-      'SELECT id FROM vehicles WHERE id = ? AND tenant_id = ? AND is_active = 1',
-    )
-    .bind(vehicleId, tenantId)
-    .first<{ id: string }>();
+  const row = await db.queryOne<{ id: string }>(
+    'SELECT id FROM vehicles WHERE id = ? AND tenant_id = ? AND is_active = 1',
+    [vehicleId, tenantId],
+  );
   return row != null;
 }
 
@@ -111,11 +109,9 @@ export async function addFuelAction(
 
   const id = generateId();
   const db = getDb();
-  await db
-    .prepare(
-      "INSERT INTO fuel_records (id, tenant_id, record_date, vehicle_id, liters, price_per_liter, total_cost, odometer_reading, station_name, receipt_ref, payment_method, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'cash', ?, ?)",
-    )
-    .bind(
+  await db.run(
+    "INSERT INTO fuel_records (id, tenant_id, record_date, vehicle_id, liters, price_per_liter, total_cost, odometer_reading, station_name, receipt_ref, payment_method, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'cash', ?, ?)",
+    [
       id,
       tenantId,
       recordDate,
@@ -128,8 +124,8 @@ export async function addFuelAction(
       emptyToNull(data.receiptRef),
       emptyToNull(data.notes),
       auth.userId,
-    )
-    .run();
+    ],
+  );
 
   return { success: true, id };
 }
@@ -158,11 +154,9 @@ export async function updateFuelAction(
   const totalCost = Math.round(liters * pricePerLiter * 100) / 100;
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      'UPDATE fuel_records SET record_date = ?, vehicle_id = ?, liters = ?, price_per_liter = ?, total_cost = ?, odometer_reading = ?, station_name = ?, receipt_ref = ?, notes = ? WHERE id = ? AND tenant_id = ?',
-    )
-    .bind(
+  const result = await db.run(
+    'UPDATE fuel_records SET record_date = ?, vehicle_id = ?, liters = ?, price_per_liter = ?, total_cost = ?, odometer_reading = ?, station_name = ?, receipt_ref = ?, notes = ? WHERE id = ? AND tenant_id = ?',
+    [
       recordDate,
       data.vehicleId,
       liters,
@@ -174,8 +168,8 @@ export async function updateFuelAction(
       emptyToNull(data.notes),
       recordId,
       tenantId,
-    )
-    .run();
+    ],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'הרישום לא נמצא' };
@@ -194,10 +188,10 @@ export async function deleteFuelAction(
   if (!recordId) return { success: false, error: 'מזהה חסר' };
 
   const db = getDb();
-  const result = await db
-    .prepare('DELETE FROM fuel_records WHERE id = ? AND tenant_id = ?')
-    .bind(recordId, tenantId)
-    .run();
+  const result = await db.run(
+    'DELETE FROM fuel_records WHERE id = ? AND tenant_id = ?',
+    [recordId, tenantId],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'הרישום לא נמצא' };

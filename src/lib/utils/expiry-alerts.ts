@@ -58,18 +58,14 @@ export const getExpiryAlerts = cache(
   async (tenantId: string): Promise<ExpiryAlert[]> => {
     const db = getDb();
     const [equipment, vehicles] = await Promise.all([
-      db
-        .prepare(
-          "SELECT name, insurance_expiry, license_expiry FROM equipment WHERE tenant_id = ? AND is_active = 1 AND status != 'retired'",
-        )
-        .bind(tenantId)
-        .all<EntityRow>(),
-      db
-        .prepare(
-          'SELECT name, insurance_expiry, license_expiry FROM vehicles WHERE tenant_id = ? AND is_active = 1',
-        )
-        .bind(tenantId)
-        .all<EntityRow>(),
+      db.query<EntityRow>(
+        "SELECT name, insurance_expiry, license_expiry FROM equipment WHERE tenant_id = ? AND is_active = 1 AND status != 'retired'",
+        [tenantId],
+      ),
+      db.query<EntityRow>(
+        'SELECT name, insurance_expiry, license_expiry FROM vehicles WHERE tenant_id = ? AND is_active = 1',
+        [tenantId],
+      ),
     ]);
 
     const alerts: ExpiryAlert[] = [];

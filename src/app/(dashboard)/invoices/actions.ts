@@ -83,39 +83,31 @@ async function computeSummary(
 ): Promise<InvoiceSummary> {
   const db = getDb();
   const [eqRow, workersRow, logRows, vatRow] = await Promise.all([
-    db
-      .prepare(
-        `SELECT COUNT(*) AS days, COALESCE(SUM(equipment_revenue), 0) AS rev
+    db.queryOne<SummaryAgg>(
+      `SELECT COUNT(*) AS days, COALESCE(SUM(equipment_revenue), 0) AS rev
          FROM daily_logs
          WHERE tenant_id = ? AND client_id = ? AND status = 'confirmed'
            AND log_date >= ? AND log_date <= ?`,
-      )
-      .bind(tenantId, clientId, periodStart, periodEnd)
-      .first<SummaryAgg>(),
-    db
-      .prepare(
-        `SELECT COUNT(wa.id) AS days, COALESCE(SUM(wa.revenue), 0) AS rev
+      [tenantId, clientId, periodStart, periodEnd],
+    ),
+    db.queryOne<SummaryAgg>(
+      `SELECT COUNT(wa.id) AS days, COALESCE(SUM(wa.revenue), 0) AS rev
          FROM worker_assignments wa
          JOIN daily_logs dl ON dl.id = wa.daily_log_id
          WHERE dl.tenant_id = ? AND dl.client_id = ? AND dl.status = 'confirmed'
            AND dl.log_date >= ? AND dl.log_date <= ?`,
-      )
-      .bind(tenantId, clientId, periodStart, periodEnd)
-      .first<SummaryAgg>(),
-    db
-      .prepare(
-        `SELECT id FROM daily_logs
+      [tenantId, clientId, periodStart, periodEnd],
+    ),
+    db.query<{ id: string }>(
+      `SELECT id FROM daily_logs
          WHERE tenant_id = ? AND client_id = ? AND status = 'confirmed'
            AND log_date >= ? AND log_date <= ?`,
-      )
-      .bind(tenantId, clientId, periodStart, periodEnd)
-      .all<{ id: string }>(),
-    db
-      .prepare(
-        "SELECT value FROM settings WHERE tenant_id = ? AND key = 'vat_rate'",
-      )
-      .bind(tenantId)
-      .first<{ value: string }>(),
+      [tenantId, clientId, periodStart, periodEnd],
+    ),
+    db.queryOne<{ value: string }>(
+      "SELECT value FROM settings WHERE tenant_id = ? AND key = 'vat_rate'",
+      [tenantId],
+    ),
   ]);
 
   const equipmentDays = Number(eqRow?.days ?? 0);
@@ -147,10 +139,10 @@ async function clientBelongsToTenant(
   clientId: string,
 ): Promise<boolean> {
   const db = getDb();
-  const row = await db
-    .prepare('SELECT id FROM clients WHERE id = ? AND tenant_id = ?')
-    .bind(clientId, tenantId)
-    .first<{ id: string }>();
+  const row = await db.queryOne<{ id: string }>(
+    'SELECT id FROM clients WHERE id = ? AND tenant_id = ?',
+    [clientId, tenantId],
+  );
   return row != null;
 }
 
@@ -184,12 +176,10 @@ async function nextInvoiceNumber(
   yyyymm: string,
 ): Promise<string> {
   const db = getDb();
-  const row = await db
-    .prepare(
-      'SELECT COUNT(*) AS c FROM invoices WHERE tenant_id = ? AND invoice_number LIKE ?',
-    )
-    .bind(tenantId, `INV-${yyyymm}-%`)
-    .first<{ c: number }>();
+  const row = await db.queryOne<{ c: number }>(
+    'SELECT COUNT(*) AS c FROM invoices WHERE tenant_id = ? AND invoice_number LIKE ?',
+    [tenantId, `INV-${yyyymm}-%`],
+  );
   const n = Number(row?.c ?? 0) + 1;
   return `INV-${yyyymm}-${String(n).padStart(3, '0')}`;
 }
@@ -232,38 +222,34 @@ export async function generateInvoiceAction(
   // Reads happen outside the batch — the logs/assignments are stable because
   // computeSummary just validated they're in 'confirmed' status, and the
   // batch will flip them to 'invoiced' atomically.
-  const logs = await db
-    .prepare(
-      `SELECT dl.id, dl.log_date, dl.equipment_revenue,
+  const logs = await db.query<{
+    id: string;
+    log_date: string;
+    equipment_revenue: number;
+    equipment_name: string;
+  }>(
+    `SELECT dl.id, dl.log_date, dl.equipment_revenue,
               e.name AS equipment_name
        FROM daily_logs dl
        JOIN equipment e ON e.id = dl.equipment_id
        WHERE dl.id IN (${placeholders})`,
-    )
-    .bind(...summary.logIds)
-    .all<{
-      id: string;
-      log_date: string;
-      equipment_revenue: number;
-      equipment_name: string;
-    }>();
+    [...summary.logIds],
+  );
 
-  const assignments = await db
-    .prepare(
-      `SELECT wa.daily_log_id, wa.revenue,
+  const assignments = await db.query<{
+    daily_log_id: string;
+    revenue: number;
+    worker_name: string;
+    log_date: string;
+  }>(
+    `SELECT wa.daily_log_id, wa.revenue,
               w.full_name AS worker_name, dl.log_date
        FROM worker_assignments wa
        JOIN daily_logs dl ON dl.id = wa.daily_log_id
        JOIN workers w ON w.id = wa.worker_id
        WHERE wa.daily_log_id IN (${placeholders})`,
-    )
-    .bind(...summary.logIds)
-    .all<{
-      daily_log_id: string;
-      revenue: number;
-      worker_name: string;
-      log_date: string;
-    }>();
+    [...summary.logIds],
+  );
 
   const statements: BatchStatement[] = [];
 
@@ -360,18 +346,16 @@ export async function updateInvoiceStatusAction(
   if (newStatus === 'cancelled') {
     // Pre-check invoice existence since batch() doesn't expose per-statement
     // results (so we can't check UPDATE changes count from inside the batch).
-    const invoice = await db
-      .prepare('SELECT id FROM invoices WHERE id = ? AND tenant_id = ?')
-      .bind(invoiceId, tenantId)
-      .first<{ id: string }>();
+    const invoice = await db.queryOne<{ id: string }>(
+      'SELECT id FROM invoices WHERE id = ? AND tenant_id = ?',
+      [invoiceId, tenantId],
+    );
     if (!invoice) return { success: false, error: 'חשבונית לא נמצאה' };
 
-    const items = await db
-      .prepare(
-        'SELECT DISTINCT daily_log_id FROM invoice_items WHERE invoice_id = ? AND tenant_id = ?',
-      )
-      .bind(invoiceId, tenantId)
-      .all<{ daily_log_id: string }>();
+    const items = await db.query<{ daily_log_id: string }>(
+      'SELECT DISTINCT daily_log_id FROM invoice_items WHERE invoice_id = ? AND tenant_id = ?',
+      [invoiceId, tenantId],
+    );
 
     const statements: BatchStatement[] = [
       {
@@ -394,12 +378,10 @@ export async function updateInvoiceStatusAction(
     return { success: true };
   }
 
-  const result = await db
-    .prepare(
-      "UPDATE invoices SET status = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(newStatus, invoiceId, tenantId)
-    .run();
+  const result = await db.run(
+    "UPDATE invoices SET status = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [newStatus, invoiceId, tenantId],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'חשבונית לא נמצאה' };
@@ -429,12 +411,14 @@ export async function recordPaymentAction(
   if (!paidDate) return { success: false, error: 'תאריך לא חוקי' };
 
   const db = getDb();
-  const invoice = await db
-    .prepare(
-      'SELECT total, paid_amount, status FROM invoices WHERE id = ? AND tenant_id = ?',
-    )
-    .bind(invoiceId, tenantId)
-    .first<{ total: number; paid_amount: number | null; status: string }>();
+  const invoice = await db.queryOne<{
+    total: number;
+    paid_amount: number | null;
+    status: string;
+  }>(
+    'SELECT total, paid_amount, status FROM invoices WHERE id = ? AND tenant_id = ?',
+    [invoiceId, tenantId],
+  );
 
   if (!invoice) return { success: false, error: 'חשבונית לא נמצאה' };
   if (invoice.status === 'cancelled')
@@ -444,12 +428,10 @@ export async function recordPaymentAction(
   const isFull = newPaid >= invoice.total - 0.01;
   const newStatus: InvoiceStatus = isFull ? 'paid' : 'partial';
 
-  await db
-    .prepare(
-      "UPDATE invoices SET paid_amount = ?, paid_date = ?, status = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
-    )
-    .bind(newPaid, paidDate, newStatus, invoiceId, tenantId)
-    .run();
+  await db.run(
+    "UPDATE invoices SET paid_amount = ?, paid_date = ?, status = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?",
+    [newPaid, paidDate, newStatus, invoiceId, tenantId],
+  );
 
   return { success: true };
 }

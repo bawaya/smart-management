@@ -88,10 +88,10 @@ async function assertBelongsToTenant(
   id: string,
 ): Promise<boolean> {
   const db = getDb();
-  const row = await db
-    .prepare(`SELECT id FROM ${table} WHERE id = ? AND tenant_id = ?`)
-    .bind(id, tenantId)
-    .first<{ id: string }>();
+  const row = await db.queryOne<{ id: string }>(
+    `SELECT id FROM ${table} WHERE id = ? AND tenant_id = ?`,
+    [id, tenantId],
+  );
   return row != null;
 }
 
@@ -141,11 +141,9 @@ export async function addExpenseAction(
 
   const id = generateId();
   const db = getDb();
-  await db
-    .prepare(
-      "INSERT INTO expenses (id, tenant_id, expense_date, category, amount, description, vehicle_id, equipment_id, worker_id, payment_method, receipt_ref, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'cash', ?, ?, ?)",
-    )
-    .bind(
+  await db.run(
+    "INSERT INTO expenses (id, tenant_id, expense_date, category, amount, description, vehicle_id, equipment_id, worker_id, payment_method, receipt_ref, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'cash', ?, ?, ?)",
+    [
       id,
       tenantId,
       expenseDate,
@@ -158,8 +156,8 @@ export async function addExpenseAction(
       emptyToNull(data.receiptRef),
       emptyToNull(data.notes),
       auth.userId,
-    )
-    .run();
+    ],
+  );
 
   return { success: true, id };
 }
@@ -187,11 +185,9 @@ export async function updateExpenseAction(
   if (!check.ok) return { success: false, error: check.error };
 
   const db = getDb();
-  const result = await db
-    .prepare(
-      'UPDATE expenses SET expense_date = ?, category = ?, amount = ?, description = ?, vehicle_id = ?, equipment_id = ?, worker_id = ?, receipt_ref = ?, notes = ? WHERE id = ? AND tenant_id = ?',
-    )
-    .bind(
+  const result = await db.run(
+    'UPDATE expenses SET expense_date = ?, category = ?, amount = ?, description = ?, vehicle_id = ?, equipment_id = ?, worker_id = ?, receipt_ref = ?, notes = ? WHERE id = ? AND tenant_id = ?',
+    [
       expenseDate,
       category,
       amount,
@@ -203,8 +199,8 @@ export async function updateExpenseAction(
       emptyToNull(data.notes),
       expenseId,
       tenantId,
-    )
-    .run();
+    ],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'הרישום לא נמצא' };
@@ -223,10 +219,10 @@ export async function deleteExpenseAction(
   if (!expenseId) return { success: false, error: 'מזהה חסר' };
 
   const db = getDb();
-  const result = await db
-    .prepare('DELETE FROM expenses WHERE id = ? AND tenant_id = ?')
-    .bind(expenseId, tenantId)
-    .run();
+  const result = await db.run(
+    'DELETE FROM expenses WHERE id = ? AND tenant_id = ?',
+    [expenseId, tenantId],
+  );
 
   if (result.changes === 0) {
     return { success: false, error: 'הרישום לא נמצא' };

@@ -43,17 +43,14 @@ export default async function DailyLogPage() {
 
   const db = getDb();
 
-  const settingsRows = await db
-    .prepare(
-      `SELECT key, value FROM settings WHERE tenant_id = ? AND key IN (${DEFAULT_KEYS.map(() => '?').join(', ')})`,
-    )
-    .bind(tenantId, ...DEFAULT_KEYS)
-    .all<SettingRow>();
+  const settingsRows = await db.query<SettingRow>(
+    `SELECT key, value FROM settings WHERE tenant_id = ? AND key IN (${DEFAULT_KEYS.map(() => '?').join(', ')})`,
+    [tenantId, ...DEFAULT_KEYS],
+  );
   const settings = new Map(settingsRows.map((r) => [r.key, r.value ?? '']));
 
-  const logs = await db
-    .prepare(
-      `SELECT
+  const logs = await db.query<DailyLogRow>(
+    `SELECT
          dl.id, dl.log_date, dl.client_id, dl.equipment_id, dl.vehicle_id,
          dl.location, dl.project_name, dl.equipment_revenue, dl.notes,
          dl.status, dl.created_by,
@@ -68,63 +65,52 @@ export default async function DailyLogPage() {
        LEFT JOIN vehicles v ON v.id = dl.vehicle_id
        WHERE dl.tenant_id = ? AND dl.log_date >= date('now', '-30 days')
        ORDER BY dl.log_date DESC, dl.created_at DESC`,
-    )
-    .bind(tenantId)
-    .all<DailyLogRow>();
+    [tenantId],
+  );
 
   const assignments =
     logs.length > 0
-      ? await db
-          .prepare(
-            `SELECT daily_log_id, worker_id, daily_rate, revenue
+      ? await db.query<AssignmentRow>(
+          `SELECT daily_log_id, worker_id, daily_rate, revenue
              FROM worker_assignments
              WHERE daily_log_id IN (${logs.map(() => '?').join(', ')})`,
-          )
-          .bind(...logs.map((l) => l.id))
-          .all<AssignmentRow>()
+          [...logs.map((l) => l.id)],
+        )
       : [];
 
-  const clients = await db
-    .prepare(
-      `SELECT id, name, equipment_daily_rate, worker_daily_rate
+  const clients = await db.query<ClientOption>(
+    `SELECT id, name, equipment_daily_rate, worker_daily_rate
        FROM clients
        WHERE tenant_id = ? AND is_active = 1
        ORDER BY name`,
-    )
-    .bind(tenantId)
-    .all<ClientOption>();
+    [tenantId],
+  );
 
-  const equipment = await db
-    .prepare(
-      `SELECT e.id, e.name, e.status,
+  const equipment = await db.query<EquipmentOption>(
+    `SELECT e.id, e.name, e.status,
               COALESCE(NULLIF(TRIM(et.name_he), ''), et.name_ar) AS type_name
        FROM equipment e
        LEFT JOIN equipment_types et ON et.id = e.equipment_type_id
        WHERE e.tenant_id = ? AND e.is_active = 1 AND e.status != 'retired'
        ORDER BY e.name`,
-    )
-    .bind(tenantId)
-    .all<EquipmentOption>();
+    [tenantId],
+  );
 
-  const vehicles = await db
-    .prepare(
-      `SELECT id, name, license_plate
+  const vehicles = await db.query<VehicleOption>(
+    `SELECT id, name, license_plate
        FROM vehicles
        WHERE tenant_id = ? AND is_active = 1
        ORDER BY name`,
-    )
-    .bind(tenantId)
-    .all<VehicleOption>();
+    [tenantId],
+  );
 
-  const workers = await db
-    .prepare(
-      `SELECT id, full_name, daily_rate
+  const workers = await db.query<WorkerOption>(
+    `SELECT id, full_name, daily_rate
        FROM workers
        WHERE tenant_id = ? AND is_active = 1
        ORDER BY full_name`,
-    )
-    .bind(tenantId)
-    .all<WorkerOption>();
+    [tenantId],
+  );
 
   return (
     <DailyLogManager

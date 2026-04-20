@@ -137,65 +137,51 @@ export const getCashFlowProjection = cache(
 
     const [balRow, thresholdRow, outChecks, inChecks, orders, cards, invoices] =
       await Promise.all([
-        db
-          .prepare(
-            'SELECT COALESCE(SUM(current_balance), 0) AS total, COUNT(*) AS cnt FROM bank_accounts WHERE tenant_id = ? AND is_active = 1',
-          )
-          .bind(tenantId)
-          .first<{ total: number; cnt: number }>(),
-        db
-          .prepare(
-            "SELECT value FROM settings WHERE tenant_id = ? AND key = 'low_balance_alert'",
-          )
-          .bind(tenantId)
-          .first<{ value: string }>(),
-        db
-          .prepare(
-            `SELECT check_number, amount, due_date, payee_or_payer
+        db.queryOne<{ total: number; cnt: number }>(
+          'SELECT COALESCE(SUM(current_balance), 0) AS total, COUNT(*) AS cnt FROM bank_accounts WHERE tenant_id = ? AND is_active = 1',
+          [tenantId],
+        ),
+        db.queryOne<{ value: string }>(
+          "SELECT value FROM settings WHERE tenant_id = ? AND key = 'low_balance_alert'",
+          [tenantId],
+        ),
+        db.query<CheckPendingRow>(
+          `SELECT check_number, amount, due_date, payee_or_payer
              FROM checks
              WHERE tenant_id = ? AND direction = 'outgoing'
                AND status IN ('pending', 'post_dated')
                AND due_date >= ? AND due_date <= ?`,
-          )
-          .bind(tenantId, rangeStart, rangeEnd)
-          .all<CheckPendingRow>(),
-        db
-          .prepare(
-            `SELECT check_number, amount, due_date, payee_or_payer
+          [tenantId, rangeStart, rangeEnd],
+        ),
+        db.query<CheckPendingRow>(
+          `SELECT check_number, amount, due_date, payee_or_payer
              FROM checks
              WHERE tenant_id = ? AND direction = 'incoming'
                AND status IN ('pending', 'post_dated')
                AND due_date >= ? AND due_date <= ?`,
-          )
-          .bind(tenantId, rangeStart, rangeEnd)
-          .all<CheckPendingRow>(),
-        db
-          .prepare(
-            `SELECT payee_name, amount, frequency, day_of_month, next_execution, end_date
+          [tenantId, rangeStart, rangeEnd],
+        ),
+        db.query<StandingOrderRow>(
+          `SELECT payee_name, amount, frequency, day_of_month, next_execution, end_date
              FROM standing_orders
              WHERE tenant_id = ? AND is_active = 1`,
-          )
-          .bind(tenantId)
-          .all<StandingOrderRow>(),
-        db
-          .prepare(
-            `SELECT card_name, last_four_digits, current_balance, billing_day
+          [tenantId],
+        ),
+        db.query<CreditCardRow>(
+          `SELECT card_name, last_four_digits, current_balance, billing_day
              FROM credit_cards
              WHERE tenant_id = ? AND is_active = 1 AND current_balance > 0`,
-          )
-          .bind(tenantId)
-          .all<CreditCardRow>(),
-        db
-          .prepare(
-            `SELECT i.invoice_number, c.name AS client_name, i.total, i.paid_amount, i.payment_due_date
+          [tenantId],
+        ),
+        db.query<InvoicePendingRow>(
+          `SELECT i.invoice_number, c.name AS client_name, i.total, i.paid_amount, i.payment_due_date
              FROM invoices i
              JOIN clients c ON c.id = i.client_id
              WHERE i.tenant_id = ? AND i.status IN ('sent', 'partial')
                AND i.payment_due_date IS NOT NULL
                AND i.payment_due_date >= ? AND i.payment_due_date <= ?`,
-          )
-          .bind(tenantId, rangeStart, rangeEnd)
-          .all<InvoicePendingRow>(),
+          [tenantId, rangeStart, rangeEnd],
+        ),
       ]);
 
     const currentBalance = Number(balRow?.total ?? 0);

@@ -19,24 +19,18 @@ export default async function DashboardLayout({
 
   const db = getDb();
   const [companyRow, labelRow, setupRow] = await Promise.all([
-    db
-      .prepare(
-        "SELECT value FROM settings WHERE tenant_id = ? AND key = 'company_name'",
-      )
-      .bind(tenantId)
-      .first<SettingRow>(),
-    db
-      .prepare(
-        "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
-      )
-      .bind(tenantId)
-      .first<SettingRow>(),
-    db
-      .prepare(
-        "SELECT value FROM settings WHERE tenant_id = ? AND key = 'is_setup_complete'",
-      )
-      .bind(tenantId)
-      .first<SettingRow>(),
+    db.queryOne<SettingRow>(
+      "SELECT value FROM settings WHERE tenant_id = ? AND key = 'company_name'",
+      [tenantId],
+    ),
+    db.queryOne<SettingRow>(
+      "SELECT value FROM settings WHERE tenant_id = ? AND key = 'equipment_label_he'",
+      [tenantId],
+    ),
+    db.queryOne<SettingRow>(
+      "SELECT value FROM settings WHERE tenant_id = ? AND key = 'is_setup_complete'",
+      [tenantId],
+    ),
   ]);
 
   if ((setupRow?.value ?? 'false') !== 'true') {
