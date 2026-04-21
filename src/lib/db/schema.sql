@@ -601,6 +601,41 @@ SELECT
 FROM vehicles v WHERE v.is_active = 1;
 
 -- =====================================================
+-- === 7.28 request_log — Permanent request observability ===
+-- =====================================================
+-- يملؤه src/middleware.ts عند كل request (باستثناء assets static).
+-- مش مربوط بأي tenant strictly — system-wide observability log،
+-- لكن بيحفظ user_id/tenant_id لو الـ request مصادَق.
+-- TEST_ cleanup ما بيمسّه (ما في حقل TEST_-prefixed).
+--
+-- Retention: يدوي. لو بتريد تنضّفه دورياً:
+--   DELETE FROM request_log WHERE timestamp < datetime('now', '-30 days');
+CREATE TABLE IF NOT EXISTS request_log (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+  url TEXT,
+  method TEXT,
+  status_code INTEGER,          -- مش متوفّر من middleware (handler-level)؛ للاستخدام المستقبلي
+  outcome TEXT,                 -- 'auth_ok' | 'auth_redirect' | 'bypassed' | 'exception' | ...
+  duration_ms INTEGER,          -- زمن تنفيذ الـ middleware فقط
+  user_id TEXT,                 -- nullable — لو الـ request مصادَق
+  tenant_id TEXT,               -- nullable — من JWT payload
+  exception_name TEXT,
+  exception_message TEXT,
+  exception_stack TEXT,
+  log_count INTEGER DEFAULT 0,
+  logs TEXT,                    -- JSON array of console.log lines — للاستخدام المستقبلي
+  user_agent TEXT,
+  cf_ray TEXT,
+  cf_country TEXT,
+  ip TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_request_log_time ON request_log(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_request_log_outcome ON request_log(outcome);
+CREATE INDEX IF NOT EXISTS idx_request_log_status ON request_log(status_code);
+CREATE INDEX IF NOT EXISTS idx_request_log_user ON request_log(user_id);
+
+-- =====================================================
 -- === Seed Data (7.29) ===
 -- =====================================================
 
