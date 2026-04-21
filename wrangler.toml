@@ -3,6 +3,14 @@ compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".vercel/output/static"
 
+# Observability (logging every request + errors) is configured at the project
+# level via the Cloudflare dashboard, NOT in this file — Pages config does not
+# accept an [observability] block. To enable:
+#   Dashboard → Workers & Pages → smart-management → Settings → Runtime →
+#   Observability → toggle "Enabled" + head sampling rate = 100%
+# Logs then appear in Dashboard → ... → Logs, or via:
+#   npx wrangler pages deployment tail <deployment-id> --project-name=smart-management
+
 [[d1_databases]]
 binding = "DB"
 database_name = "smart-management"
