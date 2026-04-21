@@ -108,6 +108,14 @@ const CLEANUP_STEPS: CleanupStep[] = [
     where: `worker_id IN (SELECT id FROM workers WHERE tenant_id = '${TENANT}' AND full_name LIKE 'TEST!_%' ESCAPE '!')`,
     desc: 'worker_assignments (FK → TEST_ worker)',
   },
+  // invoice_items.daily_log_id غير cascade — لازم تنحذف أي item بيشير
+  // لأي daily_log رح نحذفه بالـ sweep التالي (سواء بالـ FK أو بالـ text).
+  // لو تركناها، حذف daily_logs بيرجّع FK constraint failure.
+  {
+    table: 'invoice_items',
+    where: `daily_log_id IN (SELECT id FROM daily_logs WHERE tenant_id = '${TENANT}' AND (client_id IN (SELECT id FROM clients WHERE tenant_id = '${TENANT}' AND name LIKE 'TEST!_%' ESCAPE '!') OR equipment_id IN (SELECT id FROM equipment WHERE tenant_id = '${TENANT}' AND name LIKE 'TEST!_%' ESCAPE '!') OR vehicle_id IN (SELECT id FROM vehicles WHERE tenant_id = '${TENANT}' AND (name LIKE 'TEST!_%' ESCAPE '!' OR license_plate LIKE 'TEST!_%' ESCAPE '!')) OR project_name LIKE 'TEST!_%' ESCAPE '!' OR location LIKE 'TEST!_%' ESCAPE '!'))`,
+    desc: 'invoice_items (FK → daily_logs about to be deleted, non-cascade)',
+  },
   // daily_logs بتشير لـ TEST_ client/equipment/vehicle
   {
     table: 'daily_logs',
@@ -170,18 +178,12 @@ const CLEANUP_STEPS: CleanupStep[] = [
   // invoice blocks the daily_log delete downstream.
   // =========================================================
 
-  // فواتير وعناصرها
+  // فواتير وعناصرها (invoice_items → TEST_ daily_log already handled
+  // pre-Stage-1 above, so we only need the invoice-side sweep here)
   {
     table: 'invoice_items',
     where: `invoice_id IN (SELECT id FROM invoices WHERE tenant_id = '${TENANT}' AND invoice_number LIKE 'TEST!_%' ESCAPE '!')`,
     desc: 'invoice_items (via TEST_ invoices)',
-  },
-  // invoice_items that link a non-TEST_ invoice to a TEST_ daily_log —
-  // daily_log_id has no ON DELETE CASCADE, so we must clear these first.
-  {
-    table: 'invoice_items',
-    where: `daily_log_id IN (SELECT id FROM daily_logs WHERE tenant_id = '${TENANT}' AND (project_name LIKE 'TEST!_%' ESCAPE '!' OR location LIKE 'TEST!_%' ESCAPE '!'))`,
-    desc: 'invoice_items (FK → TEST_ daily_log, non-cascade)',
   },
   // worker_assignments مربوطة بـ daily_logs
   {
@@ -314,32 +316,62 @@ const CLEANUP_STEPS: CleanupStep[] = [
   },
 ];
 
+function buildSql(step: CleanupStep): string {
+  if ('kind' in step && step.kind === 'update') {
+    return `UPDATE ${step.table} SET ${step.set} WHERE ${step.where};`;
+  }
+  return `DELETE FROM ${step.table} WHERE ${step.where};`;
+}
+
 export async function cleanupTestData(): Promise<void> {
   console.log('▶ Cleanup test data on D1 remote');
   console.log(`  DB: ${DB_NAME}, tenant: ${TENANT}`);
 
   if (!existsSync(TMP_DIR)) mkdirSync(TMP_DIR, { recursive: true });
 
-  // نبني SQL ملف واحد متسلسل (أسرع من run per step)
-  let sql = '-- Cleanup test data — auto-generated\n\n';
+  // نكتب الـ SQL الكامل كـ artifact للمرجع، لكن ما بنشغّله كملف واحد —
+  // wrangler بيشغّل الملف كـ transaction واحد وما بيخبرنا أي statement فشل.
+  let sqlFile = '-- Cleanup test data — auto-generated\n\n';
   for (const step of CLEANUP_STEPS) {
-    sql += `-- ${step.desc}\n`;
-    if ('kind' in step && step.kind === 'update') {
-      sql += `UPDATE ${step.table} SET ${step.set} WHERE ${step.where};\n\n`;
-    } else {
-      sql += `DELETE FROM ${step.table} WHERE ${step.where};\n\n`;
+    sqlFile += `-- ${step.desc}\n${buildSql(step)}\n\n`;
+  }
+  writeFileSync(SQL_PATH, sqlFile, 'utf8');
+
+  const total = CLEANUP_STEPS.length;
+  console.log(
+    `▶ Executing cleanup — ${total} statements, one at a time for precise failure attribution\n`,
+  );
+
+  for (let i = 0; i < total; i += 1) {
+    const step = CLEANUP_STEPS[i];
+    const sql = buildSql(step);
+    const tag = `[${String(i + 1).padStart(2, ' ')}/${total}]`;
+    // wrangler --command يقبل string؛ SQL عندنا بيستعمل single quotes
+    // جوّاه، فـ wrapping بـ double quotes في bash آمن (ما فيه $ أو `).
+    const cmd = `npx wrangler d1 execute ${DB_NAME} --remote --command="${sql.replace(/"/g, '\\"')}"`;
+    try {
+      execSync(cmd, {
+        cwd: PROJECT_ROOT,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        encoding: 'utf8',
+      });
+      console.log(`${tag} ✓ ${step.desc}`);
+    } catch (err) {
+      const e = err as { stdout?: Buffer | string; stderr?: Buffer | string };
+      const stdout = e.stdout ? e.stdout.toString() : '';
+      const stderr = e.stderr ? e.stderr.toString() : '';
+      console.error(`\n${tag} ✗ FAILED: ${step.desc}`);
+      console.error(`  SQL: ${sql}`);
+      if (stdout.trim()) console.error(`  stdout:\n${stdout.trim()}`);
+      if (stderr.trim()) console.error(`  stderr:\n${stderr.trim()}`);
+      console.error(
+        `\n✗ Cleanup stopped at step ${i + 1}/${total}. Fix the dependency and re-run.`,
+      );
+      process.exit(1);
     }
   }
-  writeFileSync(SQL_PATH, sql, 'utf8');
 
-  console.log(
-    `▶ Executing cleanup (${CLEANUP_STEPS.length} delete statements)...`,
-  );
-  execSync(
-    `npx wrangler d1 execute ${DB_NAME} --remote --file="${SQL_PATH}"`,
-    { cwd: PROJECT_ROOT, stdio: 'inherit' },
-  );
-  console.log('✓ Cleanup complete');
+  console.log(`\n✓ Cleanup complete — all ${total} statements succeeded`);
 }
 
 // Script mode — `tsx scripts/cleanup-test-data.ts`
