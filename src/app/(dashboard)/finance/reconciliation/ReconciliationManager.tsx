@@ -124,15 +124,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -146,14 +149,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -264,12 +270,13 @@ function NewReconciliationModal({
           יש להוסיף חשבון בנק לפני ביצוע התאמה.
         </div>
       ) : step === 'form' ? (
-        <div className="space-y-4">
+        <div data-testid="reconciliation-form" className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               חשבון בנק <span className="text-red-500">*</span>
             </label>
             <select
+              data-testid="reconciliation-form-bank-account-id"
               value={bankAccountId}
               onChange={(e) => setBankAccountId(e.target.value)}
               className={INPUT_CLASS}
@@ -288,6 +295,7 @@ function NewReconciliationModal({
             </label>
             <input
               type="date"
+              data-testid="reconciliation-form-reconciliation-date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               dir="ltr"
@@ -300,6 +308,7 @@ function NewReconciliationModal({
             </label>
             <input
               type="number"
+              data-testid="reconciliation-form-statement-balance"
               value={statementBalance}
               onChange={(e) => setStatementBalance(e.target.value)}
               step="0.01"
@@ -314,6 +323,7 @@ function NewReconciliationModal({
           {error && (
             <div
               role="alert"
+              data-testid="reconciliation-form-error"
               className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
             >
               {error}
@@ -321,12 +331,26 @@ function NewReconciliationModal({
           )}
 
           <div className="flex items-center justify-end gap-2 pt-2">
-            <GhostButton onClick={onClose}>ביטול</GhostButton>
-            <PrimaryButton onClick={handleCompare}>השווה</PrimaryButton>
+            <GhostButton
+              onClick={onClose}
+              testId="reconciliation-form-cancel"
+            >
+              ביטול
+            </GhostButton>
+            <PrimaryButton
+              onClick={handleCompare}
+              testId="reconciliation-form-compare"
+            >
+              השווה
+            </PrimaryButton>
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSave} className="space-y-4">
+        <form
+          onSubmit={handleSave}
+          data-testid="reconciliation-form"
+          className="space-y-4"
+        >
           <section className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -382,6 +406,7 @@ function NewReconciliationModal({
           {error && (
             <div
               role="alert"
+              data-testid="reconciliation-form-error"
               className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
             >
               {error}
@@ -393,10 +418,18 @@ function NewReconciliationModal({
               חזור
             </GhostButton>
             <div className="flex items-center gap-2">
-              <GhostButton onClick={onClose} disabled={submitting}>
+              <GhostButton
+                onClick={onClose}
+                disabled={submitting}
+                testId="reconciliation-form-cancel"
+              >
                 ביטול
               </GhostButton>
-              <PrimaryButton type="submit" disabled={submitting}>
+              <PrimaryButton
+                type="submit"
+                disabled={submitting}
+                testId="reconciliation-form-submit"
+              >
                 {submitting ? 'שומר...' : 'שמור התאמה'}
               </PrimaryButton>
             </div>
@@ -452,12 +485,17 @@ function StatusModal({ tenantId, rec, onClose, onSuccess }: StatusModalProps) {
         </span>
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+      <form
+        onSubmit={handleSubmit}
+        data-testid="reconciliation-status-modal"
+        className="mt-4 space-y-3"
+      >
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             סטטוס חדש
           </label>
           <select
+            data-testid="reconciliation-status-select"
             value={status}
             onChange={(e) => setStatus(e.target.value as ReconciliationStatus)}
             className={INPUT_CLASS}
@@ -465,7 +503,11 @@ function StatusModal({ tenantId, rec, onClose, onSuccess }: StatusModalProps) {
             {(
               ['pending', 'matched', 'discrepancy', 'resolved'] as const
             ).map((s) => (
-              <option key={s} value={s}>
+              <option
+                key={s}
+                value={s}
+                data-testid={`reconciliation-status-option-${s}`}
+              >
                 {STATUS_CONFIG[s].label}
               </option>
             ))}
@@ -574,15 +616,30 @@ function ReconciliationCard({
   onStatus: () => void;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+    <div
+      data-testid="reconciliation-row"
+      data-reconciliation-id={rec.id}
+      className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+    >
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-bold text-gray-900" dir="ltr">
+          <p
+            data-testid="reconciliation-row-date"
+            className="font-bold text-gray-900"
+            dir="ltr"
+          >
             {formatDateIL(rec.reconciliation_date)}
           </p>
-          <p className="text-sm text-gray-600 truncate">{rec.bank_name}</p>
+          <p
+            data-testid="reconciliation-row-bank"
+            className="text-sm text-gray-600 truncate"
+          >
+            {rec.bank_name}
+          </p>
         </div>
-        <StatusBadge status={rec.status} />
+        <div data-testid="reconciliation-row-status">
+          <StatusBadge status={rec.status} />
+        </div>
       </header>
       <dl className="mt-2 space-y-0.5 text-sm">
         <div className="flex justify-between">
@@ -595,14 +652,21 @@ function ReconciliationCard({
         </div>
         <div className="flex justify-between">
           <dt className="text-gray-600">הפרש:</dt>
-          <dd>
+          <dd data-testid="reconciliation-row-difference">
             <DifferenceDisplay diff={rec.difference} />
           </dd>
         </div>
       </dl>
       <div className="mt-3 flex items-center justify-end gap-1">
-        <GhostButton onClick={onView}>צפייה</GhostButton>
-        <GhostButton onClick={onStatus}>עדכון סטטוס</GhostButton>
+        <GhostButton onClick={onView} testId="reconciliation-row-view">
+          צפייה
+        </GhostButton>
+        <GhostButton
+          onClick={onStatus}
+          testId="reconciliation-row-status-change"
+        >
+          עדכון סטטוס
+        </GhostButton>
       </div>
     </div>
   );
@@ -641,7 +705,10 @@ export function ReconciliationManager({
       </p>
 
       <div>
-        <PrimaryButton onClick={() => setModal({ kind: 'new' })}>
+        <PrimaryButton
+          onClick={() => setModal({ kind: 'new' })}
+          testId="reconciliation-add-button"
+        >
           + התאמה חדשה
         </PrimaryButton>
       </div>
@@ -660,12 +727,18 @@ export function ReconciliationManager({
       )}
 
       {reconciliations.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+        <div
+          data-testid="reconciliation-empty"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center"
+        >
           <p className="text-gray-600">לא בוצעו התאמות בנק עדיין.</p>
         </div>
       ) : (
         <>
-          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <div
+            data-testid="reconciliation-list"
+            className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto"
+          >
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-right">
                 <tr>
@@ -684,11 +757,22 @@ export function ReconciliationManager({
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {reconciliations.map((rec) => (
-                  <tr key={rec.id}>
-                    <td className="px-4 py-3" dir="ltr">
+                  <tr
+                    key={rec.id}
+                    data-testid="reconciliation-row"
+                    data-reconciliation-id={rec.id}
+                  >
+                    <td
+                      data-testid="reconciliation-row-date"
+                      className="px-4 py-3"
+                      dir="ltr"
+                    >
                       {formatDateIL(rec.reconciliation_date)}
                     </td>
-                    <td className="px-4 py-3 text-gray-900">
+                    <td
+                      data-testid="reconciliation-row-bank"
+                      className="px-4 py-3 text-gray-900"
+                    >
                       {rec.bank_name}
                     </td>
                     <td className="px-4 py-3" dir="ltr">
@@ -697,21 +781,29 @@ export function ReconciliationManager({
                     <td className="px-4 py-3" dir="ltr">
                       {formatILS(rec.system_balance)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td
+                      data-testid="reconciliation-row-difference"
+                      className="px-4 py-3"
+                    >
                       <DifferenceDisplay diff={rec.difference} />
                     </td>
-                    <td className="px-4 py-3">
+                    <td
+                      data-testid="reconciliation-row-status"
+                      className="px-4 py-3"
+                    >
                       <StatusBadge status={rec.status} />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 flex-wrap">
                         <GhostButton
                           onClick={() => setModal({ kind: 'view', rec })}
+                          testId="reconciliation-row-view"
                         >
                           צפייה
                         </GhostButton>
                         <GhostButton
                           onClick={() => setModal({ kind: 'status', rec })}
+                          testId="reconciliation-row-status-change"
                         >
                           עדכון סטטוס
                         </GhostButton>
@@ -723,7 +815,7 @@ export function ReconciliationManager({
             </table>
           </div>
 
-          <div className="md:hidden space-y-3">
+          <div data-testid="reconciliation-list" className="md:hidden space-y-3">
             {reconciliations.map((rec) => (
               <ReconciliationCard
                 key={rec.id}

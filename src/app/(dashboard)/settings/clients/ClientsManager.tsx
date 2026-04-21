@@ -89,15 +89,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -111,14 +114,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -205,7 +211,11 @@ function ClientFormModal({
       <h3 className="text-lg font-bold text-gray-900 mb-4">
         {editing ? 'עריכת לקוח' : 'הוספת לקוח'}
       </h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        data-testid="clients-form"
+        className="space-y-4"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -213,6 +223,7 @@ function ClientFormModal({
             </label>
             <input
               type="text"
+              data-testid="clients-form-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -225,6 +236,7 @@ function ClientFormModal({
             </label>
             <input
               type="text"
+              data-testid="clients-form-contact-person"
               value={contactPerson}
               onChange={(e) => setContactPerson(e.target.value)}
               className={INPUT_CLASS}
@@ -236,6 +248,7 @@ function ClientFormModal({
             </label>
             <input
               type="tel"
+              data-testid="clients-form-phone"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               dir="ltr"
@@ -248,6 +261,7 @@ function ClientFormModal({
             </label>
             <input
               type="email"
+              data-testid="clients-form-email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               dir="ltr"
@@ -260,6 +274,7 @@ function ClientFormModal({
             </label>
             <input
               type="text"
+              data-testid="clients-form-tax-id"
               value={taxId}
               onChange={(e) => setTaxId(e.target.value)}
               dir="ltr"
@@ -272,6 +287,7 @@ function ClientFormModal({
             </label>
             <input
               type="text"
+              data-testid="clients-form-address"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               className={INPUT_CLASS}
@@ -295,6 +311,7 @@ function ClientFormModal({
               </label>
               <input
                 type="number"
+                data-testid="clients-form-equipment-rate"
                 dir="ltr"
                 min="0"
                 step="0.01"
@@ -310,6 +327,7 @@ function ClientFormModal({
               </label>
               <input
                 type="number"
+                data-testid="clients-form-worker-rate"
                 dir="ltr"
                 min="0"
                 step="0.01"
@@ -327,6 +345,7 @@ function ClientFormModal({
             הערות
           </label>
           <textarea
+            data-testid="clients-form-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
@@ -337,6 +356,7 @@ function ClientFormModal({
         {error && (
           <div
             role="alert"
+            data-testid="clients-form-error"
             className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
           >
             {error}
@@ -344,10 +364,18 @@ function ClientFormModal({
         )}
 
         <div className="flex items-center justify-end gap-2 pt-2">
-          <GhostButton onClick={onClose} disabled={submitting}>
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="clients-form-cancel"
+          >
             ביטול
           </GhostButton>
-          <PrimaryButton type="submit" disabled={submitting}>
+          <PrimaryButton
+            type="submit"
+            disabled={submitting}
+            testId="clients-form-submit"
+          >
             {submitting ? 'שומר...' : 'שמור'}
           </PrimaryButton>
         </div>
@@ -391,38 +419,46 @@ function ToggleModal({
 
   return (
     <Modal onClose={onClose}>
-      <h3 className="text-lg font-bold text-gray-900">
-        {activating ? 'הפעלת לקוח' : 'השבתת לקוח'}
-      </h3>
-      <p className="mt-2 text-sm text-gray-600">
-        {activating
-          ? `האם להפעיל מחדש את ${client.name}?`
-          : `האם להשבית את ${client.name}? לא ניתן יהיה לצרף אותו לרישומים חדשים.`}
-      </p>
-      {error && (
-        <div
-          role="alert"
-          className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
-        >
-          {error}
+      <div data-testid="clients-toggle-modal">
+        <h3 className="text-lg font-bold text-gray-900">
+          {activating ? 'הפעלת לקוח' : 'השבתת לקוח'}
+        </h3>
+        <p className="mt-2 text-sm text-gray-600">
+          {activating
+            ? `האם להפעיל מחדש את ${client.name}?`
+            : `האם להשבית את ${client.name}? לא ניתן יהיה לצרף אותו לרישומים חדשים.`}
+        </p>
+        {error && (
+          <div
+            role="alert"
+            data-testid="clients-toggle-error"
+            className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
+          >
+            {error}
+          </div>
+        )}
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="clients-toggle-cancel"
+          >
+            ביטול
+          </GhostButton>
+          <button
+            type="button"
+            data-testid="clients-toggle-confirm"
+            onClick={handleConfirm}
+            disabled={submitting}
+            className={`px-4 py-2 rounded-md text-white font-bold text-sm transition-colors disabled:opacity-60 ${
+              activating
+                ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-red-600 hover:bg-red-700'
+            }`}
+          >
+            {submitting ? '...' : activating ? 'הפעל' : 'השבת'}
+          </button>
         </div>
-      )}
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <GhostButton onClick={onClose} disabled={submitting}>
-          ביטול
-        </GhostButton>
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={submitting}
-          className={`px-4 py-2 rounded-md text-white font-bold text-sm transition-colors disabled:opacity-60 ${
-            activating
-              ? 'bg-green-600 hover:bg-green-700'
-              : 'bg-red-600 hover:bg-red-700'
-          }`}
-        >
-          {submitting ? '...' : activating ? 'הפעל' : 'השבת'}
-        </button>
       </div>
     </Modal>
   );
@@ -441,17 +477,32 @@ function ClientCard({
 }) {
   const active = client.is_active === 1;
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+    <div
+      data-testid="clients-row"
+      data-client-id={client.id}
+      data-clients-active={active ? '1' : '0'}
+      className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+    >
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="font-bold text-gray-900 truncate">{client.name}</h3>
+          <h3
+            data-testid="clients-row-name"
+            className="font-bold text-gray-900 truncate"
+          >
+            {client.name}
+          </h3>
           {client.contact_person && (
-            <p className="text-sm text-gray-600 truncate">
+            <p
+              data-testid="clients-row-contact"
+              className="text-sm text-gray-600 truncate"
+            >
               {client.contact_person}
             </p>
           )}
         </div>
-        <StatusBadge active={active} />
+        <div data-testid="clients-row-active">
+          <StatusBadge active={active} />
+        </div>
       </header>
 
       {client.phone && (
@@ -484,9 +535,12 @@ function ClientCard({
       </dl>
 
       <div className="mt-3 flex items-center justify-end gap-1">
-        <GhostButton onClick={onEdit}>עריכה</GhostButton>
+        <GhostButton onClick={onEdit} testId="clients-row-edit">
+          עריכה
+        </GhostButton>
         <button
           type="button"
+          data-testid="clients-row-toggle"
           onClick={onToggle}
           className={`px-3 py-2 rounded-md text-sm transition-colors ${
             active
@@ -528,7 +582,10 @@ export function ClientsManager({
           </span>
           ניהול לקוחות
         </h1>
-        <PrimaryButton onClick={() => setFormState({ mode: 'add' })}>
+        <PrimaryButton
+          onClick={() => setFormState({ mode: 'add' })}
+          testId="clients-add-button"
+        >
           + הוסף לקוח
         </PrimaryButton>
       </header>
@@ -547,14 +604,20 @@ export function ClientsManager({
       )}
 
       {clients.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+        <div
+          data-testid="clients-empty"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center"
+        >
           <p className="text-gray-600">
             אין לקוחות עדיין. הוסף את הלקוח הראשון שלך.
           </p>
         </div>
       ) : (
         <>
-          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <div
+            data-testid="clients-list"
+            className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto"
+          >
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-right">
                 <tr>
@@ -579,11 +642,22 @@ export function ClientsManager({
                 {clients.map((client) => {
                   const active = client.is_active === 1;
                   return (
-                    <tr key={client.id}>
-                      <td className="px-4 py-3 text-gray-900 font-medium">
+                    <tr
+                      key={client.id}
+                      data-testid="clients-row"
+                      data-client-id={client.id}
+                      data-clients-active={active ? '1' : '0'}
+                    >
+                      <td
+                        data-testid="clients-row-name"
+                        className="px-4 py-3 text-gray-900 font-medium"
+                      >
                         {client.name}
                       </td>
-                      <td className="px-4 py-3 text-gray-700">
+                      <td
+                        data-testid="clients-row-contact"
+                        className="px-4 py-3 text-gray-700"
+                      >
                         {client.contact_person ?? '—'}
                       </td>
                       <td className="px-4 py-3 text-gray-700" dir="ltr">
@@ -603,7 +677,7 @@ export function ClientsManager({
                           <DefaultRate />
                         )}
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-testid="clients-row-active" className="px-4 py-3">
                         <StatusBadge active={active} />
                       </td>
                       <td className="px-4 py-3">
@@ -612,11 +686,13 @@ export function ClientsManager({
                             onClick={() =>
                               setFormState({ mode: 'edit', client })
                             }
+                            testId="clients-row-edit"
                           >
                             עריכה
                           </GhostButton>
                           <button
                             type="button"
+                            data-testid="clients-row-toggle"
                             onClick={() => setToggleClient(client)}
                             className={`px-3 py-2 rounded-md text-sm transition-colors ${
                               active
@@ -635,7 +711,7 @@ export function ClientsManager({
             </table>
           </div>
 
-          <div className="md:hidden space-y-3">
+          <div data-testid="clients-list" className="md:hidden space-y-3">
             {clients.map((client) => (
               <ClientCard
                 key={client.id}

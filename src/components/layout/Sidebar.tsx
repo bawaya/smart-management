@@ -18,6 +18,11 @@ interface NavItem {
   icon: string;
 }
 
+function navSlug(href: string): string {
+  if (href === '/') return 'dashboard';
+  return href.slice(1).replace(/\//g, '-');
+}
+
 function buildNavItems(equipmentLabel: string): NavItem[] {
   return [
     { href: '/', label: 'ראשי', icon: '🏠' },
@@ -60,6 +65,7 @@ export function Sidebar({
       )}
 
       <aside
+        data-testid="sidebar"
         className={`fixed top-0 right-0 h-screen w-[260px] bg-[#1a1a2e] text-white z-40 flex flex-col transform transition-transform duration-200 md:translate-x-0 print:hidden ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
@@ -83,6 +89,7 @@ export function Sidebar({
               <Link
                 key={item.href}
                 href={item.href}
+                data-testid={`sidebar-link-${navSlug(item.href)}`}
                 onClick={closeSidebar}
                 title={item.label}
                 aria-label={item.label}
@@ -111,6 +118,7 @@ export function Sidebar({
           <p className="text-xs text-gray-400 mb-3">{userRole}</p>
           <button
             type="button"
+            data-testid="logout-button"
             onClick={async () => {
               await fetch('/api/auth/logout', { method: 'POST' });
               router.push('/login');
@@ -120,7 +128,10 @@ export function Sidebar({
           >
             יציאה
           </button>
-          <p className="mt-3 text-[10px] text-gray-500 text-center">
+          <p
+            data-testid="sidebar-version"
+            className="mt-3 text-[10px] text-gray-500 text-center"
+          >
             ניהול חכם v1.0.0
           </p>
         </div>

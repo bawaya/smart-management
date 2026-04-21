@@ -277,7 +277,10 @@ export function BudgetReport({ data, company }: BudgetReportProps) {
         <section className="mt-6">
           <h3 className="text-base font-bold text-green-900 mb-2">הכנסות</h3>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm border border-gray-200">
+            <table
+              data-testid="report-budget-table"
+              className="w-full text-sm border border-gray-200"
+            >
               <thead className="bg-green-50 text-right">
                 <tr>
                   <th className="px-3 py-2 font-medium text-gray-700">סעיף</th>
@@ -294,18 +297,31 @@ export function BudgetReport({ data, company }: BudgetReportProps) {
                   const pct = utilization(line.yearlyActual, line.yearlyPlanned);
                   const diff = delta(line.yearlyActual, line.yearlyPlanned);
                   return (
-                    <tr key={line.key}>
+                    <tr
+                      key={line.key}
+                      data-testid="report-budget-row"
+                      data-budget-category={line.key}
+                    >
                       <td className="px-3 py-2 text-gray-900">{line.label}</td>
-                      <td className="px-3 py-2" dir="ltr">
+                      <td
+                        data-testid="report-budget-planned"
+                        className="px-3 py-2"
+                        dir="ltr"
+                      >
                         {formatILS(line.yearlyPlanned)}
                       </td>
-                      <td className="px-3 py-2 font-medium" dir="ltr">
+                      <td
+                        data-testid="report-budget-actual"
+                        className="px-3 py-2 font-medium"
+                        dir="ltr"
+                      >
                         {formatILS(line.yearlyActual)}
                       </td>
                       <td className="px-3 py-2" dir="ltr">
                         {line.yearlyPlanned > 0 ? `${pct}%` : '—'}
                       </td>
                       <td
+                        data-testid="report-budget-variance"
                         className={`px-3 py-2 font-medium ${profitClass(diff)}`}
                         dir="ltr"
                       >
@@ -317,10 +333,18 @@ export function BudgetReport({ data, company }: BudgetReportProps) {
                 })}
                 <tr className="bg-green-50 font-bold">
                   <td className="px-3 py-2 text-green-900">סה״כ הכנסות</td>
-                  <td className="px-3 py-2 text-green-900" dir="ltr">
+                  <td
+                    data-testid="report-budget-total-income-planned"
+                    className="px-3 py-2 text-green-900"
+                    dir="ltr"
+                  >
                     {formatILS(data.totalIncomePlanned)}
                   </td>
-                  <td className="px-3 py-2 text-green-900" dir="ltr">
+                  <td
+                    data-testid="report-budget-total-income-actual"
+                    className="px-3 py-2 text-green-900"
+                    dir="ltr"
+                  >
                     {formatILS(data.totalIncomeActual)}
                   </td>
                   <td className="px-3 py-2 text-green-900" dir="ltr">
@@ -363,18 +387,31 @@ export function BudgetReport({ data, company }: BudgetReportProps) {
                         ? 'text-amber-700'
                         : 'text-gray-700';
                   return (
-                    <tr key={line.key}>
+                    <tr
+                      key={line.key}
+                      data-testid="report-budget-row"
+                      data-budget-category={line.key}
+                    >
                       <td className="px-3 py-2 text-gray-900">{line.label}</td>
-                      <td className="px-3 py-2" dir="ltr">
+                      <td
+                        data-testid="report-budget-planned"
+                        className="px-3 py-2"
+                        dir="ltr"
+                      >
                         {formatILS(line.yearlyPlanned)}
                       </td>
-                      <td className="px-3 py-2 font-medium" dir="ltr">
+                      <td
+                        data-testid="report-budget-actual"
+                        className="px-3 py-2 font-medium"
+                        dir="ltr"
+                      >
                         {formatILS(line.yearlyActual)}
                       </td>
                       <td className={`px-3 py-2 ${pctColor}`} dir="ltr">
                         {line.yearlyPlanned > 0 ? `${pct}%` : '—'}
                       </td>
                       <td
+                        data-testid="report-budget-variance"
                         className={`px-3 py-2 font-medium ${
                           diff <= 0 ? 'text-green-700' : 'text-red-700'
                         }`}
@@ -388,10 +425,18 @@ export function BudgetReport({ data, company }: BudgetReportProps) {
                 })}
                 <tr className="bg-red-50 font-bold">
                   <td className="px-3 py-2 text-red-900">סה״כ הוצאות</td>
-                  <td className="px-3 py-2 text-red-900" dir="ltr">
+                  <td
+                    data-testid="report-budget-total-expense-planned"
+                    className="px-3 py-2 text-red-900"
+                    dir="ltr"
+                  >
                     {formatILS(data.totalExpensePlanned)}
                   </td>
-                  <td className="px-3 py-2 text-red-900" dir="ltr">
+                  <td
+                    data-testid="report-budget-total-expense-actual"
+                    className="px-3 py-2 text-red-900"
+                    dir="ltr"
+                  >
                     {formatILS(data.totalExpenseActual)}
                   </td>
                   <td className="px-3 py-2 text-red-900" dir="ltr">

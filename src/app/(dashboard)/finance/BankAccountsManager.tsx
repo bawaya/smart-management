@@ -84,15 +84,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -106,14 +109,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -202,7 +208,11 @@ function BankFormModal({
       <h3 className="text-lg font-bold text-gray-900 mb-4">
         {editing ? 'עריכת חשבון בנק' : 'הוספת חשבון בנק'}
       </h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        data-testid="bank-accounts-form"
+        className="space-y-4"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -210,6 +220,7 @@ function BankFormModal({
             </label>
             <input
               type="text"
+              data-testid="bank-accounts-form-bank-name"
               value={bankName}
               onChange={(e) => setBankName(e.target.value)}
               required
@@ -222,6 +233,7 @@ function BankFormModal({
             </label>
             <input
               type="text"
+              data-testid="bank-accounts-form-branch-number"
               value={branchNumber}
               onChange={(e) => setBranchNumber(e.target.value)}
               dir="ltr"
@@ -234,6 +246,7 @@ function BankFormModal({
             </label>
             <input
               type="text"
+              data-testid="bank-accounts-form-account-number"
               value={accountNumber}
               onChange={(e) => setAccountNumber(e.target.value)}
               required
@@ -247,6 +260,7 @@ function BankFormModal({
             </label>
             <input
               type="text"
+              data-testid="bank-accounts-form-account-name"
               value={accountName}
               onChange={(e) => setAccountName(e.target.value)}
               className={INPUT_CLASS}
@@ -254,7 +268,7 @@ function BankFormModal({
           </div>
         </div>
 
-        <fieldset>
+        <fieldset data-testid="bank-accounts-form-account-type">
           <legend className="block text-sm font-medium text-gray-700 mb-2">
             סוג
           </legend>
@@ -291,6 +305,7 @@ function BankFormModal({
           </label>
           <input
             type="number"
+            data-testid="bank-accounts-form-current-balance"
             value={currentBalance}
             onChange={(e) => setCurrentBalance(e.target.value)}
             step="0.01"
@@ -303,6 +318,7 @@ function BankFormModal({
         <label className="flex items-center gap-2 text-sm text-gray-700">
           <input
             type="checkbox"
+            data-testid="bank-accounts-form-is-primary"
             checked={isPrimary}
             onChange={(e) => setIsPrimary(e.target.checked)}
             className="w-4 h-4 accent-[#f59e0b]"
@@ -315,6 +331,7 @@ function BankFormModal({
             הערות
           </label>
           <textarea
+            data-testid="bank-accounts-form-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
@@ -325,6 +342,7 @@ function BankFormModal({
         {error && (
           <div
             role="alert"
+            data-testid="bank-accounts-form-error"
             className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
           >
             {error}
@@ -332,10 +350,18 @@ function BankFormModal({
         )}
 
         <div className="flex items-center justify-end gap-2 pt-2">
-          <GhostButton onClick={onClose} disabled={submitting}>
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="bank-accounts-form-cancel"
+          >
             ביטול
           </GhostButton>
-          <PrimaryButton type="submit" disabled={submitting}>
+          <PrimaryButton
+            type="submit"
+            disabled={submitting}
+            testId="bank-accounts-form-submit"
+          >
             {submitting ? 'שומר...' : 'שמור'}
           </PrimaryButton>
         </div>
@@ -377,38 +403,45 @@ function ToggleModal({
 
   return (
     <Modal onClose={onClose} size="md">
-      <h3 className="text-lg font-bold text-gray-900">
-        {activating ? 'הפעלת חשבון' : 'השבתת חשבון'}
-      </h3>
-      <p className="mt-2 text-sm text-gray-600">
-        {activating
-          ? `להפעיל מחדש את ${account.bank_name}?`
-          : `להשבית את ${account.bank_name}?`}
-      </p>
-      {error && (
-        <div
-          role="alert"
-          className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
-        >
-          {error}
+      <div data-testid="bank-accounts-toggle-modal">
+        <h3 className="text-lg font-bold text-gray-900">
+          {activating ? 'הפעלת חשבון' : 'השבתת חשבון'}
+        </h3>
+        <p className="mt-2 text-sm text-gray-600">
+          {activating
+            ? `להפעיל מחדש את ${account.bank_name}?`
+            : `להשבית את ${account.bank_name}?`}
+        </p>
+        {error && (
+          <div
+            role="alert"
+            className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
+          >
+            {error}
+          </div>
+        )}
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="bank-accounts-toggle-cancel"
+          >
+            ביטול
+          </GhostButton>
+          <button
+            type="button"
+            data-testid="bank-accounts-toggle-confirm"
+            onClick={handleConfirm}
+            disabled={submitting}
+            className={`px-4 py-2 rounded-md text-white font-bold text-sm transition-colors disabled:opacity-60 ${
+              activating
+                ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-red-600 hover:bg-red-700'
+            }`}
+          >
+            {submitting ? '...' : activating ? 'הפעל' : 'השבת'}
+          </button>
         </div>
-      )}
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <GhostButton onClick={onClose} disabled={submitting}>
-          ביטול
-        </GhostButton>
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={submitting}
-          className={`px-4 py-2 rounded-md text-white font-bold text-sm transition-colors disabled:opacity-60 ${
-            activating
-              ? 'bg-green-600 hover:bg-green-700'
-              : 'bg-red-600 hover:bg-red-700'
-          }`}
-        >
-          {submitting ? '...' : activating ? 'הפעל' : 'השבת'}
-        </button>
       </div>
     </Modal>
   );
@@ -428,6 +461,9 @@ function AccountCard({
 
   return (
     <div
+      data-testid="bank-accounts-row"
+      data-account-id={account.id}
+      data-bank-accounts-active={active ? '1' : '0'}
       className={`bg-white rounded-xl border border-gray-200 shadow-sm p-5 ${
         active ? '' : 'opacity-60'
       }`}
@@ -435,11 +471,17 @@ function AccountCard({
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-bold text-gray-900 truncate">
+            <h3
+              data-testid="bank-accounts-row-bank-name"
+              className="font-bold text-gray-900 truncate"
+            >
               {account.bank_name}
             </h3>
             {account.is_primary === 1 && (
-              <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+              <span
+                data-testid="bank-accounts-row-primary"
+                className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
+              >
                 ראשי
               </span>
             )}
@@ -447,7 +489,11 @@ function AccountCard({
               <span className="text-xs text-gray-500">(מושבת)</span>
             )}
           </div>
-          <p className="text-sm text-gray-500 mt-0.5" dir="ltr">
+          <p
+            data-testid="bank-accounts-row-account-number"
+            className="text-sm text-gray-500 mt-0.5"
+            dir="ltr"
+          >
             {account.branch_number
               ? `סניף ${account.branch_number} · `
               : ''}
@@ -466,6 +512,7 @@ function AccountCard({
 
       <p className="mt-3 text-xs text-gray-500">יתרה נוכחית</p>
       <p
+        data-testid="bank-accounts-row-balance"
         className={`text-2xl font-bold ${
           positive ? 'text-green-700' : 'text-red-700'
         }`}
@@ -475,9 +522,12 @@ function AccountCard({
       </p>
 
       <div className="mt-3 flex items-center justify-end gap-1">
-        <GhostButton onClick={onEdit}>עריכה</GhostButton>
+        <GhostButton onClick={onEdit} testId="bank-accounts-row-edit">
+          עריכה
+        </GhostButton>
         <button
           type="button"
+          data-testid="bank-accounts-row-toggle"
           onClick={onToggle}
           className={`px-3 py-2 rounded-md text-sm transition-colors ${
             active
@@ -551,7 +601,10 @@ export function BankAccountsManager({
       </div>
 
       <div>
-        <PrimaryButton onClick={() => setModal({ kind: 'add' })}>
+        <PrimaryButton
+          onClick={() => setModal({ kind: 'add' })}
+          testId="bank-accounts-add-button"
+        >
           + הוסף חשבון
         </PrimaryButton>
       </div>
@@ -570,13 +623,19 @@ export function BankAccountsManager({
       )}
 
       {accounts.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+        <div
+          data-testid="bank-accounts-empty"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center"
+        >
           <p className="text-gray-600">
             אין חשבונות בנק. הוסף את החשבון הראשון.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div
+          data-testid="bank-accounts-list"
+          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
           {accounts.map((a) => (
             <AccountCard
               key={a.id}

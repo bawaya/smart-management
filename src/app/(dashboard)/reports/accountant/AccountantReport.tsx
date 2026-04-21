@@ -239,7 +239,11 @@ export function AccountantReport({ data, company }: AccountantReportProps) {
                 <td className="px-3 py-2 text-gray-700">
                   מספר חשבוניות שהופקו
                 </td>
-                <td className="px-3 py-2 text-end font-medium" dir="ltr">
+                <td
+                  data-testid="report-accountant-invoices-count"
+                  className="px-3 py-2 text-end font-medium"
+                  dir="ltr"
+                >
                   {data.invoicesCount}
                 </td>
               </tr>
@@ -247,13 +251,21 @@ export function AccountantReport({ data, company }: AccountantReportProps) {
                 <td className="px-3 py-2 text-gray-700">
                   סה״כ חשבוניות (לפני מע״מ)
                 </td>
-                <td className="px-3 py-2 text-end font-medium" dir="ltr">
+                <td
+                  data-testid="report-accountant-subtotal"
+                  className="px-3 py-2 text-end font-medium"
+                  dir="ltr"
+                >
                   {formatILS(data.invoicesSubtotalSum)}
                 </td>
               </tr>
               <tr>
                 <td className="px-3 py-2 text-gray-700">מע״מ שנגבה</td>
-                <td className="px-3 py-2 text-end font-medium" dir="ltr">
+                <td
+                  data-testid="report-accountant-vat-total"
+                  className="px-3 py-2 text-end font-medium"
+                  dir="ltr"
+                >
                   {formatILS(data.invoicesVatSum)}
                 </td>
               </tr>
@@ -262,6 +274,7 @@ export function AccountantReport({ data, company }: AccountantReportProps) {
                   סה״כ חשבוניות (כולל מע״מ)
                 </td>
                 <td
+                  data-testid="report-accountant-total"
                   className="px-3 py-2 text-end text-blue-900 font-bold"
                   dir="ltr"
                 >

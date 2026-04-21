@@ -8,7 +8,10 @@ interface HeaderProps {
 
 export function Header({ username }: HeaderProps) {
   return (
-    <header className="h-[60px] bg-white shadow-sm flex items-center px-4 md:px-6 sticky top-0 z-20 print:hidden">
+    <header
+      data-testid="page-header"
+      className="h-[60px] bg-white shadow-sm flex items-center px-4 md:px-6 sticky top-0 z-20 print:hidden"
+    >
       <button
         type="button"
         onClick={toggleSidebar}
@@ -31,7 +34,12 @@ export function Header({ username }: HeaderProps) {
           <line x1="3" y1="18" x2="21" y2="18" />
         </svg>
       </button>
-      <div className="ms-auto text-sm text-gray-600 truncate">{username}</div>
+      <div
+        data-testid="header-username"
+        className="ms-auto text-sm text-gray-600 truncate"
+      >
+        {username}
+      </div>
     </header>
   );
 }

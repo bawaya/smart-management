@@ -200,15 +200,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -222,14 +225,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -380,7 +386,11 @@ function CheckFormModal({
           יש להוסיף חשבון בנק לפני רישום שיק.
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          data-testid="checks-form"
+          className="space-y-4"
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -388,6 +398,7 @@ function CheckFormModal({
               </label>
               <input
                 type="text"
+                data-testid="checks-form-check-number"
                 value={checkNumber}
                 onChange={(e) => setCheckNumber(e.target.value)}
                 required
@@ -400,6 +411,7 @@ function CheckFormModal({
                 חשבון בנק <span className="text-red-500">*</span>
               </label>
               <select
+                data-testid="checks-form-bank-account-id"
                 value={bankAccountId}
                 onChange={(e) => setBankAccountId(e.target.value)}
                 required
@@ -419,6 +431,7 @@ function CheckFormModal({
               </label>
               <input
                 type="number"
+                data-testid="checks-form-amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required
@@ -434,6 +447,7 @@ function CheckFormModal({
               </label>
               <input
                 type="text"
+                data-testid="checks-form-payee-or-payer"
                 value={payeeOrPayer}
                 onChange={(e) => setPayeeOrPayer(e.target.value)}
                 required
@@ -446,6 +460,7 @@ function CheckFormModal({
               </label>
               <input
                 type="date"
+                data-testid="checks-form-issue-date"
                 value={issueDate}
                 onChange={(e) => setIssueDate(e.target.value)}
                 dir="ltr"
@@ -458,6 +473,7 @@ function CheckFormModal({
               </label>
               <input
                 type="date"
+                data-testid="checks-form-due-date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
                 required
@@ -470,6 +486,7 @@ function CheckFormModal({
                 קטגוריה
               </label>
               <select
+                data-testid="checks-form-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className={INPUT_CLASS}
@@ -488,6 +505,7 @@ function CheckFormModal({
               </label>
               <input
                 type="text"
+                data-testid="checks-form-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className={INPUT_CLASS}
@@ -500,6 +518,7 @@ function CheckFormModal({
               הערות
             </label>
             <textarea
+              data-testid="checks-form-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
@@ -510,6 +529,7 @@ function CheckFormModal({
           {error && (
             <div
               role="alert"
+              data-testid="checks-form-error"
               className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
             >
               {error}
@@ -517,10 +537,18 @@ function CheckFormModal({
           )}
 
           <div className="flex items-center justify-end gap-2 pt-2">
-            <GhostButton onClick={onClose} disabled={submitting}>
+            <GhostButton
+              onClick={onClose}
+              disabled={submitting}
+              testId="checks-form-cancel"
+            >
               ביטול
             </GhostButton>
-            <PrimaryButton type="submit" disabled={submitting}>
+            <PrimaryButton
+              type="submit"
+              disabled={submitting}
+              testId="checks-form-submit"
+            >
               {submitting ? 'שומר...' : 'שמור'}
             </PrimaryButton>
           </div>
@@ -581,12 +609,17 @@ function StatusModal({
         שיק #{check.check_number}
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+      <form
+        onSubmit={handleSubmit}
+        data-testid="checks-status-modal"
+        className="mt-4 space-y-3"
+      >
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             סטטוס חדש
           </label>
           <select
+            data-testid="checks-status-select"
             value={status}
             onChange={(e) => setStatus(e.target.value as CheckStatus)}
             className={INPUT_CLASS}
@@ -601,7 +634,11 @@ function StatusModal({
                 'post_dated',
               ] as const
             ).map((s) => (
-              <option key={s} value={s}>
+              <option
+                key={s}
+                value={s}
+                data-testid={`checks-status-option-${s}`}
+              >
                 {STATUS_CONFIG[s].label}
               </option>
             ))}
@@ -614,6 +651,7 @@ function StatusModal({
             </label>
             <input
               type="text"
+              data-testid="checks-status-bounce-reason"
               value={bounceReason}
               onChange={(e) => setBounceReason(e.target.value)}
               required
@@ -625,6 +663,7 @@ function StatusModal({
         {error && (
           <div
             role="alert"
+            data-testid="checks-status-error"
             className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
           >
             {error}
@@ -632,10 +671,18 @@ function StatusModal({
         )}
 
         <div className="flex items-center justify-end gap-2 pt-2">
-          <GhostButton onClick={onClose} disabled={submitting}>
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="checks-status-cancel"
+          >
             ביטול
           </GhostButton>
-          <PrimaryButton type="submit" disabled={submitting}>
+          <PrimaryButton
+            type="submit"
+            disabled={submitting}
+            testId="checks-status-submit"
+          >
             {submitting ? 'שומר...' : 'עדכן'}
           </PrimaryButton>
         </div>
@@ -738,23 +785,43 @@ function CheckCard({
   const active =
     check.status === 'pending' || check.status === 'post_dated';
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+    <div
+      data-testid="checks-row"
+      data-check-id={check.id}
+      data-checks-direction={check.direction}
+      className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+    >
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-bold text-gray-900" dir="ltr">
+            <p
+              data-testid="checks-row-check-number"
+              className="font-bold text-gray-900"
+              dir="ltr"
+            >
               #{check.check_number}
             </p>
-            <DirectionBadge direction={check.direction} />
+            <div data-testid="checks-row-direction">
+              <DirectionBadge direction={check.direction} />
+            </div>
           </div>
-          <p className="text-sm text-gray-700 mt-0.5 truncate">
+          <p
+            data-testid="checks-row-payee"
+            className="text-sm text-gray-700 mt-0.5 truncate"
+          >
             {check.payee_or_payer}
           </p>
           <p className="text-xs text-gray-500 mt-0.5">{check.bank_name}</p>
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
-          <StatusBadge status={check.status} />
-          <p className="font-bold text-gray-900" dir="ltr">
+          <div data-testid="checks-row-status">
+            <StatusBadge status={check.status} />
+          </div>
+          <p
+            data-testid="checks-row-amount"
+            className="font-bold text-gray-900"
+            dir="ltr"
+          >
             {formatILS(check.amount)}
           </p>
         </div>
@@ -762,15 +829,23 @@ function CheckCard({
       <dl className="mt-2 text-sm space-y-0.5">
         <div className="flex justify-between">
           <dt className="text-gray-600">תאריך פירעון:</dt>
-          <dd>
+          <dd data-testid="checks-row-due-date">
             <DueDateCell date={check.due_date} active={active} />
           </dd>
         </div>
       </dl>
       <div className="mt-3 flex items-center justify-end gap-1 flex-wrap">
-        <GhostButton onClick={onView}>צפייה</GhostButton>
-        <GhostButton onClick={onStatus}>עדכון סטטוס</GhostButton>
-        {editable && <GhostButton onClick={onEdit}>עריכה</GhostButton>}
+        <GhostButton onClick={onView} testId="checks-row-view">
+          צפייה
+        </GhostButton>
+        <GhostButton onClick={onStatus} testId="checks-row-status-change">
+          עדכון סטטוס
+        </GhostButton>
+        {editable && (
+          <GhostButton onClick={onEdit} testId="checks-row-edit">
+            עריכה
+          </GhostButton>
+        )}
       </div>
     </div>
   );
@@ -890,6 +965,7 @@ export function ChecksManager({
       <div className="flex flex-col md:flex-row gap-2 md:items-end flex-wrap">
         <button
           type="button"
+          data-testid="checks-add-button-outgoing"
           onClick={() => setModal({ kind: 'add', direction: 'outgoing' })}
           className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors"
         >
@@ -897,6 +973,7 @@ export function ChecksManager({
         </button>
         <button
           type="button"
+          data-testid="checks-add-button-incoming"
           onClick={() => setModal({ kind: 'add', direction: 'incoming' })}
           className="px-4 py-2 rounded-md bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition-colors"
         >
@@ -972,7 +1049,10 @@ export function ChecksManager({
       )}
 
       {checks.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+        <div
+          data-testid="checks-empty"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center"
+        >
           <p className="text-gray-600">אין שיקים רשומים.</p>
         </div>
       ) : filtered.length === 0 ? (
@@ -983,7 +1063,10 @@ export function ChecksManager({
         </div>
       ) : (
         <>
-          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <div
+            data-testid="checks-list"
+            className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto"
+          >
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-right">
                 <tr>
@@ -1010,46 +1093,65 @@ export function ChecksManager({
                   const active =
                     c.status === 'pending' || c.status === 'post_dated';
                   return (
-                    <tr key={c.id}>
-                      <td className="px-4 py-3 font-medium" dir="ltr">
+                    <tr
+                      key={c.id}
+                      data-testid="checks-row"
+                      data-check-id={c.id}
+                      data-checks-direction={c.direction}
+                    >
+                      <td
+                        data-testid="checks-row-check-number"
+                        className="px-4 py-3 font-medium"
+                        dir="ltr"
+                      >
                         {c.check_number}
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-testid="checks-row-direction" className="px-4 py-3">
                         <DirectionBadge direction={c.direction} />
                       </td>
-                      <td className="px-4 py-3 text-gray-900">
+                      <td
+                        data-testid="checks-row-payee"
+                        className="px-4 py-3 text-gray-900"
+                      >
                         {c.payee_or_payer}
                       </td>
-                      <td className="px-4 py-3 font-medium text-gray-900" dir="ltr">
+                      <td
+                        data-testid="checks-row-amount"
+                        className="px-4 py-3 font-medium text-gray-900"
+                        dir="ltr"
+                      >
                         {formatILS(c.amount)}
                       </td>
                       <td className="px-4 py-3" dir="ltr">
                         {formatDateIL(c.issue_date)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-testid="checks-row-due-date" className="px-4 py-3">
                         <DueDateCell date={c.due_date} active={active} />
                       </td>
                       <td className="px-4 py-3 text-gray-700 truncate">
                         {c.bank_name}
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-testid="checks-row-status" className="px-4 py-3">
                         <StatusBadge status={c.status} />
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 flex-wrap">
                           <GhostButton
                             onClick={() => setModal({ kind: 'view', check: c })}
+                            testId="checks-row-view"
                           >
                             צפייה
                           </GhostButton>
                           <GhostButton
                             onClick={() => setModal({ kind: 'status', check: c })}
+                            testId="checks-row-status-change"
                           >
                             עדכון סטטוס
                           </GhostButton>
                           {editable && (
                             <GhostButton
                               onClick={() => setModal({ kind: 'edit', check: c })}
+                              testId="checks-row-edit"
                             >
                               עריכה
                             </GhostButton>
@@ -1063,7 +1165,7 @@ export function ChecksManager({
             </table>
           </div>
 
-          <div className="md:hidden space-y-3">
+          <div data-testid="checks-list" className="md:hidden space-y-3">
             {filtered.map((c) => (
               <CheckCard
                 key={c.id}

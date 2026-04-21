@@ -105,7 +105,7 @@ export function InvoiceDetails({
         }
       `}</style>
 
-      <div className="max-w-4xl mx-auto">
+      <div data-testid="invoice-detail" className="max-w-4xl mx-auto">
         <div className="invoice-print-hide flex items-center justify-between gap-2 mb-4">
           <Link
             href="/invoices"
@@ -170,7 +170,11 @@ export function InvoiceDetails({
               <h1 className="text-3xl font-bold text-gray-900">חשבונית</h1>
               <p className="mt-2 text-sm text-gray-700">
                 מספר:{' '}
-                <span className="font-medium" dir="ltr">
+                <span
+                  data-testid="invoice-detail-number"
+                  className="font-medium"
+                  dir="ltr"
+                >
                   {invoice.invoice_number}
                 </span>
               </p>
@@ -180,6 +184,7 @@ export function InvoiceDetails({
               </p>
               <div className="mt-2">
                 <span
+                  data-testid="invoice-detail-status"
                   className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig.badge}`}
                 >
                   {statusConfig.label}
@@ -236,7 +241,10 @@ export function InvoiceDetails({
 
           <section className="mt-6">
             <h3 className="text-sm font-bold text-gray-900 mb-2">בנודים</h3>
-            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+            <div
+              data-testid="invoice-detail-items"
+              className="overflow-x-auto border border-gray-200 rounded-lg"
+            >
               <table className="w-full text-sm">
                 <thead className="bg-gray-100 text-right">
                   <tr>
@@ -269,7 +277,12 @@ export function InvoiceDetails({
                     </tr>
                   )}
                   {equipmentItems.map((item, idx) => (
-                    <tr key={item.id}>
+                    <tr
+                      key={item.id}
+                      data-testid="invoice-detail-item"
+                      data-item-id={item.id}
+                      data-item-type="equipment"
+                    >
                       <td className="px-3 py-2 text-gray-500" dir="ltr">
                         {idx + 1}
                       </td>
@@ -298,7 +311,12 @@ export function InvoiceDetails({
                     </tr>
                   )}
                   {workerItems.map((item, idx) => (
-                    <tr key={item.id}>
+                    <tr
+                      key={item.id}
+                      data-testid="invoice-detail-item"
+                      data-item-id={item.id}
+                      data-item-type="worker"
+                    >
                       <td className="px-3 py-2 text-gray-500" dir="ltr">
                         {equipmentItems.length + idx + 1}
                       </td>
@@ -352,6 +370,7 @@ export function InvoiceDetails({
                   סה״כ לתשלום:
                 </dt>
                 <dd
+                  data-testid="invoice-detail-total"
                   className="text-gray-900 font-bold text-base"
                   dir="ltr"
                 >
@@ -362,13 +381,18 @@ export function InvoiceDetails({
                 <>
                   <div className="flex justify-between pt-1">
                     <dt className="text-gray-700">שולם:</dt>
-                    <dd className="text-green-700 font-medium" dir="ltr">
+                    <dd
+                      data-testid="invoice-detail-paid"
+                      className="text-green-700 font-medium"
+                      dir="ltr"
+                    >
                       {formatILS(paidAmount)}
                     </dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-gray-700">יתרה:</dt>
                     <dd
+                      data-testid="invoice-detail-remaining"
                       className={`font-medium ${
                         remaining > 0 ? 'text-red-600' : 'text-green-700'
                       }`}

@@ -105,15 +105,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -127,14 +130,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -215,13 +221,18 @@ function WorkerFormModal({
       <h3 className="text-lg font-bold text-gray-900 mb-4">
         {editing ? 'עריכת עובד' : 'הוספת עובד'}
       </h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        data-testid="workers-form"
+        className="space-y-4"
+      >
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             שם מלא <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
+            data-testid="workers-form-full-name"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
@@ -236,6 +247,7 @@ function WorkerFormModal({
             </label>
             <input
               type="text"
+              data-testid="workers-form-id-number"
               value={idNumber}
               onChange={(e) => setIdNumber(e.target.value)}
               dir="ltr"
@@ -248,6 +260,7 @@ function WorkerFormModal({
             </label>
             <input
               type="tel"
+              data-testid="workers-form-phone"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               dir="ltr"
@@ -262,6 +275,7 @@ function WorkerFormModal({
           </label>
           <input
             type="number"
+            data-testid="workers-form-daily-rate"
             value={dailyRate}
             onChange={(e) => setDailyRate(e.target.value)}
             min="0"
@@ -280,6 +294,7 @@ function WorkerFormModal({
             הערות
           </label>
           <textarea
+            data-testid="workers-form-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
@@ -290,6 +305,7 @@ function WorkerFormModal({
         {error && (
           <div
             role="alert"
+            data-testid="workers-form-error"
             className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
           >
             {error}
@@ -297,10 +313,18 @@ function WorkerFormModal({
         )}
 
         <div className="flex items-center justify-end gap-2 pt-2">
-          <GhostButton onClick={onClose} disabled={submitting}>
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="workers-form-cancel"
+          >
             ביטול
           </GhostButton>
-          <PrimaryButton type="submit" disabled={submitting}>
+          <PrimaryButton
+            type="submit"
+            disabled={submitting}
+            testId="workers-form-submit"
+          >
             {submitting ? 'שומר...' : 'שמור'}
           </PrimaryButton>
         </div>
@@ -344,38 +368,46 @@ function ToggleModal({
 
   return (
     <Modal onClose={onClose} size="md">
-      <h3 className="text-lg font-bold text-gray-900">
-        {activating ? 'הפעלת עובד' : 'השבתת עובד'}
-      </h3>
-      <p className="mt-2 text-sm text-gray-600">
-        {activating
-          ? `האם להפעיל מחדש את ${worker.full_name}?`
-          : `האם להשבית את ${worker.full_name}? לא ניתן יהיה לצרף אותו לרישומים חדשים.`}
-      </p>
-      {error && (
-        <div
-          role="alert"
-          className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
-        >
-          {error}
+      <div data-testid="workers-toggle-modal">
+        <h3 className="text-lg font-bold text-gray-900">
+          {activating ? 'הפעלת עובד' : 'השבתת עובד'}
+        </h3>
+        <p className="mt-2 text-sm text-gray-600">
+          {activating
+            ? `האם להפעיל מחדש את ${worker.full_name}?`
+            : `האם להשבית את ${worker.full_name}? לא ניתן יהיה לצרף אותו לרישומים חדשים.`}
+        </p>
+        {error && (
+          <div
+            role="alert"
+            data-testid="workers-toggle-error"
+            className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
+          >
+            {error}
+          </div>
+        )}
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="workers-toggle-cancel"
+          >
+            ביטול
+          </GhostButton>
+          <button
+            type="button"
+            data-testid="workers-toggle-confirm"
+            onClick={handleConfirm}
+            disabled={submitting}
+            className={`px-4 py-2 rounded-md text-white font-bold text-sm transition-colors disabled:opacity-60 ${
+              activating
+                ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-red-600 hover:bg-red-700'
+            }`}
+          >
+            {submitting ? '...' : activating ? 'הפעל' : 'השבת'}
+          </button>
         </div>
-      )}
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <GhostButton onClick={onClose} disabled={submitting}>
-          ביטול
-        </GhostButton>
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={submitting}
-          className={`px-4 py-2 rounded-md text-white font-bold text-sm transition-colors disabled:opacity-60 ${
-            activating
-              ? 'bg-green-600 hover:bg-green-700'
-              : 'bg-red-600 hover:bg-red-700'
-          }`}
-        >
-          {submitting ? '...' : activating ? 'הפעל' : 'השבת'}
-        </button>
       </div>
     </Modal>
   );
@@ -394,23 +426,41 @@ function WorkerCard({
 }) {
   const active = worker.is_active === 1;
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+    <div
+      data-testid="workers-row"
+      data-worker-id={worker.id}
+      data-workers-active={active ? '1' : '0'}
+      className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+    >
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="font-bold text-gray-900 truncate">
+          <h3
+            data-testid="workers-row-name"
+            className="font-bold text-gray-900 truncate"
+          >
             {worker.full_name}
           </h3>
           {worker.id_number && (
-            <p className="text-xs text-gray-500" dir="ltr">
+            <p
+              data-testid="workers-row-id-number"
+              className="text-xs text-gray-500"
+              dir="ltr"
+            >
               ת.ז {worker.id_number}
             </p>
           )}
         </div>
-        <StatusBadge active={active} />
+        <div data-testid="workers-row-active">
+          <StatusBadge active={active} />
+        </div>
       </header>
 
       {worker.phone && (
-        <p className="mt-2 text-sm text-gray-700" dir="ltr">
+        <p
+          data-testid="workers-row-phone"
+          className="mt-2 text-sm text-gray-700"
+          dir="ltr"
+        >
           {worker.phone}
         </p>
       )}
@@ -418,16 +468,19 @@ function WorkerCard({
       <dl className="mt-3 space-y-1 text-sm">
         <div className="flex justify-between gap-2">
           <dt className="text-gray-600">שכר יומי:</dt>
-          <dd>
+          <dd data-testid="workers-row-rate">
             <RateCell rate={worker.daily_rate} defaultRate={defaultRate} />
           </dd>
         </div>
       </dl>
 
       <div className="mt-3 flex items-center justify-end gap-1">
-        <GhostButton onClick={onEdit}>עריכה</GhostButton>
+        <GhostButton onClick={onEdit} testId="workers-row-edit">
+          עריכה
+        </GhostButton>
         <button
           type="button"
+          data-testid="workers-row-toggle"
           onClick={onToggle}
           className={`px-3 py-2 rounded-md text-sm transition-colors ${
             active
@@ -483,7 +536,10 @@ export function WorkersManager({
       </header>
 
       <div className="flex flex-col md:flex-row gap-2 md:items-center">
-        <PrimaryButton onClick={() => setFormState({ mode: 'add' })}>
+        <PrimaryButton
+          onClick={() => setFormState({ mode: 'add' })}
+          testId="workers-add-button"
+        >
           + הוסף עובד
         </PrimaryButton>
         <select
@@ -512,7 +568,10 @@ export function WorkersManager({
       )}
 
       {workers.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+        <div
+          data-testid="workers-empty"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center"
+        >
           <p className="text-gray-600">
             אין עובדים עדיין. הוסף את העובד הראשון שלך.
           </p>
@@ -525,7 +584,10 @@ export function WorkersManager({
         </div>
       ) : (
         <>
-          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <div
+            data-testid="workers-list"
+            className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto"
+          >
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-right">
                 <tr>
@@ -543,23 +605,39 @@ export function WorkersManager({
                 {filtered.map((worker) => {
                   const active = worker.is_active === 1;
                   return (
-                    <tr key={worker.id}>
-                      <td className="px-4 py-3 text-gray-900 font-medium">
+                    <tr
+                      key={worker.id}
+                      data-testid="workers-row"
+                      data-worker-id={worker.id}
+                      data-workers-active={active ? '1' : '0'}
+                    >
+                      <td
+                        data-testid="workers-row-name"
+                        className="px-4 py-3 text-gray-900 font-medium"
+                      >
                         {worker.full_name}
                       </td>
-                      <td className="px-4 py-3 text-gray-700" dir="ltr">
+                      <td
+                        data-testid="workers-row-id-number"
+                        className="px-4 py-3 text-gray-700"
+                        dir="ltr"
+                      >
                         {worker.id_number ?? '—'}
                       </td>
-                      <td className="px-4 py-3 text-gray-700" dir="ltr">
+                      <td
+                        data-testid="workers-row-phone"
+                        className="px-4 py-3 text-gray-700"
+                        dir="ltr"
+                      >
                         {worker.phone ?? '—'}
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-testid="workers-row-rate" className="px-4 py-3">
                         <RateCell
                           rate={worker.daily_rate}
                           defaultRate={defaultRate}
                         />
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-testid="workers-row-active" className="px-4 py-3">
                         <StatusBadge active={active} />
                       </td>
                       <td className="px-4 py-3">
@@ -568,11 +646,13 @@ export function WorkersManager({
                             onClick={() =>
                               setFormState({ mode: 'edit', worker })
                             }
+                            testId="workers-row-edit"
                           >
                             עריכה
                           </GhostButton>
                           <button
                             type="button"
+                            data-testid="workers-row-toggle"
                             onClick={() => setToggleWorker(worker)}
                             className={`px-3 py-2 rounded-md text-sm transition-colors ${
                               active
@@ -591,7 +671,7 @@ export function WorkersManager({
             </table>
           </div>
 
-          <div className="md:hidden space-y-3">
+          <div data-testid="workers-list" className="md:hidden space-y-3">
             {filtered.map((worker) => (
               <WorkerCard
                 key={worker.id}

@@ -156,15 +156,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -178,14 +181,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -310,7 +316,11 @@ function UpdateBudgetModal({
       <h3 className="text-lg font-bold text-gray-900">עדכון תקציב</h3>
       <p className="mt-1 text-sm text-gray-600">{periodLabel}</p>
 
-      <form onSubmit={handleSubmit} className="mt-4 space-y-5">
+      <form
+        onSubmit={handleSubmit}
+        data-testid="budget-form"
+        className="mt-4 space-y-5"
+      >
         <section>
           <h4 className="text-sm font-semibold text-green-800 bg-green-50 border border-green-200 rounded-md px-3 py-1.5">
             הכנסות
@@ -319,13 +329,19 @@ function UpdateBudgetModal({
             {INCOME_CATEGORIES.map((cat) => (
               <div
                 key={cat}
+                data-testid="budget-category-row"
+                data-budget-category={cat}
                 className="grid grid-cols-[1fr_10rem] gap-3 items-center"
               >
-                <label className="text-sm text-gray-700">
+                <label
+                  data-testid="budget-category-name"
+                  className="text-sm text-gray-700"
+                >
                   {categoryLabel(cat, equipmentLabel)}
                 </label>
                 <input
                   type="number"
+                  data-testid="budget-category-amount"
                   min="0"
                   step="0.01"
                   dir="ltr"
@@ -347,13 +363,19 @@ function UpdateBudgetModal({
             {EXPENSE_CATEGORIES.map((cat) => (
               <div
                 key={cat}
+                data-testid="budget-category-row"
+                data-budget-category={cat}
                 className="grid grid-cols-[1fr_10rem] gap-3 items-center"
               >
-                <label className="text-sm text-gray-700">
+                <label
+                  data-testid="budget-category-name"
+                  className="text-sm text-gray-700"
+                >
                   {categoryLabel(cat, equipmentLabel)}
                 </label>
                 <input
                   type="number"
+                  data-testid="budget-category-amount"
                   min="0"
                   step="0.01"
                   dir="ltr"
@@ -370,6 +392,7 @@ function UpdateBudgetModal({
         {error && (
           <div
             role="alert"
+            data-testid="budget-error"
             className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
           >
             {error}
@@ -377,10 +400,18 @@ function UpdateBudgetModal({
         )}
 
         <div className="flex items-center justify-end gap-2 pt-2">
-          <GhostButton onClick={onClose} disabled={submitting}>
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="budget-cancel"
+          >
             ביטול
           </GhostButton>
-          <PrimaryButton type="submit" disabled={submitting}>
+          <PrimaryButton
+            type="submit"
+            disabled={submitting}
+            testId="budget-submit"
+          >
             {submitting ? 'שומר...' : 'שמור תקציב'}
           </PrimaryButton>
         </div>
@@ -770,7 +801,7 @@ export function BudgetManager({
     month == null ? String(year) : `${HEBREW_MONTHS[month - 1]} ${year}`;
 
   return (
-    <div className="space-y-6">
+    <div data-testid="budget" className="space-y-6">
       <header className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-gray-900">
           <span aria-hidden className="me-2">
@@ -790,7 +821,10 @@ export function BudgetManager({
           >
             →
           </button>
-          <span className="px-3 py-2 rounded-md bg-white border border-gray-200 font-bold text-gray-900 min-w-[4rem] text-center">
+          <span
+            data-testid="budget-year"
+            className="px-3 py-2 rounded-md bg-white border border-gray-200 font-bold text-gray-900 min-w-[4rem] text-center"
+          >
             {year}
           </span>
           <button
@@ -804,6 +838,7 @@ export function BudgetManager({
         </div>
         {view === 'current' && (
           <select
+            data-testid="budget-month"
             value={month == null ? 'all' : String(month)}
             onChange={(e) =>
               navigate(
@@ -822,7 +857,10 @@ export function BudgetManager({
             ))}
           </select>
         )}
-        <div className="inline-flex rounded-md border border-gray-300 overflow-hidden">
+        <div
+          data-testid="budget-period-toggle"
+          className="inline-flex rounded-md border border-gray-300 overflow-hidden"
+        >
           <button
             type="button"
             onClick={() => navigate(year, month, 'current')}
@@ -847,7 +885,10 @@ export function BudgetManager({
           </button>
         </div>
         {view === 'current' && (
-          <PrimaryButton onClick={() => setShowModal(true)}>
+          <PrimaryButton
+            onClick={() => setShowModal(true)}
+            testId="budget-update-button"
+          >
             עדכן תקציב
           </PrimaryButton>
         )}
@@ -873,12 +914,18 @@ export function BudgetManager({
           monthlyActuals={monthlyActuals ?? []}
         />
       ) : !hasBudget ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+        <div
+          data-testid="budget-empty"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center"
+        >
           <p className="text-gray-600">
             לא הוגדר תקציב ל{periodLabel}. הגדר תקציב כדי לעקוב אחר ביצוע.
           </p>
           <div className="mt-4 flex justify-center">
-            <PrimaryButton onClick={() => setShowModal(true)}>
+            <PrimaryButton
+              onClick={() => setShowModal(true)}
+              testId="budget-update-button"
+            >
               הגדר תקציב
             </PrimaryButton>
           </div>

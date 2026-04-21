@@ -149,15 +149,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -171,14 +174,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -289,7 +295,11 @@ function EquipmentFormModal({
           לא הוגדרו סוגים. יש להגדיר סוגי ציוד בהגדרות לפני הוספת פריט חדש.
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          data-testid="equipment-form"
+          className="space-y-4"
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -297,6 +307,7 @@ function EquipmentFormModal({
               </label>
               <input
                 type="text"
+                data-testid="equipment-form-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -308,6 +319,7 @@ function EquipmentFormModal({
                 סוג <span className="text-red-500">*</span>
               </label>
               <select
+                data-testid="equipment-form-type"
                 value={typeId}
                 onChange={(e) => setTypeId(e.target.value)}
                 required
@@ -326,6 +338,7 @@ function EquipmentFormModal({
               </label>
               <input
                 type="text"
+                data-testid="equipment-form-identifier"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 dir="ltr"
@@ -337,6 +350,7 @@ function EquipmentFormModal({
                 סטטוס
               </label>
               <select
+                data-testid="equipment-form-status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value as EquipmentStatus)}
                 className={INPUT_CLASS}
@@ -354,6 +368,7 @@ function EquipmentFormModal({
               </label>
               <input
                 type="date"
+                data-testid="equipment-form-insurance-expiry"
                 value={insuranceExpiry}
                 onChange={(e) => setInsuranceExpiry(e.target.value)}
                 className={INPUT_CLASS}
@@ -366,6 +381,7 @@ function EquipmentFormModal({
               </label>
               <input
                 type="date"
+                data-testid="equipment-form-license-expiry"
                 value={licenseExpiry}
                 onChange={(e) => setLicenseExpiry(e.target.value)}
                 className={INPUT_CLASS}
@@ -378,6 +394,7 @@ function EquipmentFormModal({
               </label>
               <input
                 type="date"
+                data-testid="equipment-form-last-maintenance"
                 value={lastMaintenance}
                 onChange={(e) => setLastMaintenance(e.target.value)}
                 className={INPUT_CLASS}
@@ -391,6 +408,7 @@ function EquipmentFormModal({
               הערות
             </label>
             <textarea
+              data-testid="equipment-form-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
@@ -401,6 +419,7 @@ function EquipmentFormModal({
           {error && (
             <div
               role="alert"
+              data-testid="equipment-form-error"
               className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
             >
               {error}
@@ -408,10 +427,18 @@ function EquipmentFormModal({
           )}
 
           <div className="flex items-center justify-end gap-2 pt-2">
-            <GhostButton onClick={onClose} disabled={submitting}>
+            <GhostButton
+              onClick={onClose}
+              disabled={submitting}
+              testId="equipment-form-cancel"
+            >
               ביטול
             </GhostButton>
-            <PrimaryButton type="submit" disabled={submitting}>
+            <PrimaryButton
+              type="submit"
+              disabled={submitting}
+              testId="equipment-form-submit"
+            >
               {submitting ? 'שומר...' : 'שמור'}
             </PrimaryButton>
           </div>
@@ -459,43 +486,51 @@ function QuickStatusModal({
 
   return (
     <Modal onClose={onClose} size="md">
-      <h3 className="text-lg font-bold text-gray-900">שינוי סטטוס</h3>
-      <p className="mt-1 text-sm text-gray-600">{item.name}</p>
+      <div data-testid="equipment-status-modal">
+        <h3 className="text-lg font-bold text-gray-900">שינוי סטטוס</h3>
+        <p className="mt-1 text-sm text-gray-600">{item.name}</p>
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        {ALL_STATUSES.map((status) => {
-          const c = STATUS_CONFIG[status];
-          const current = status === item.status;
-          const isLoading = submitting === status;
-          return (
-            <button
-              key={status}
-              type="button"
-              onClick={() => choose(status)}
-              disabled={submitting !== null}
-              className={`px-4 py-3 rounded-md font-bold text-sm transition-colors disabled:opacity-60 ${c.button} ${
-                current ? 'ring-2 ring-offset-2 ring-black/20' : ''
-              }`}
-            >
-              {isLoading ? '...' : c.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {error && (
-        <div
-          role="alert"
-          className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
-        >
-          {error}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          {ALL_STATUSES.map((status) => {
+            const c = STATUS_CONFIG[status];
+            const current = status === item.status;
+            const isLoading = submitting === status;
+            return (
+              <button
+                key={status}
+                type="button"
+                data-testid={`equipment-status-option-${status}`}
+                onClick={() => choose(status)}
+                disabled={submitting !== null}
+                className={`px-4 py-3 rounded-md font-bold text-sm transition-colors disabled:opacity-60 ${c.button} ${
+                  current ? 'ring-2 ring-offset-2 ring-black/20' : ''
+                }`}
+              >
+                {isLoading ? '...' : c.label}
+              </button>
+            );
+          })}
         </div>
-      )}
 
-      <div className="mt-4 flex justify-end">
-        <GhostButton onClick={onClose} disabled={submitting !== null}>
-          סגור
-        </GhostButton>
+        {error && (
+          <div
+            role="alert"
+            data-testid="equipment-status-error"
+            className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
+          >
+            {error}
+          </div>
+        )}
+
+        <div className="mt-4 flex justify-end">
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting !== null}
+            testId="equipment-status-cancel"
+          >
+            סגור
+          </GhostButton>
+        </div>
       </div>
     </Modal>
   );
@@ -511,10 +546,19 @@ function EquipmentCard({
   onStatus: () => void;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+    <div
+      data-testid="equipment-row"
+      data-equipment-id={item.id}
+      className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+    >
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="font-bold text-gray-900 truncate">{item.name}</h3>
+          <h3
+            data-testid="equipment-row-name"
+            className="font-bold text-gray-900 truncate"
+          >
+            {item.name}
+          </h3>
           <p className="text-sm text-gray-600 truncate">
             {item.type_name ?? '—'}
             {item.identifier ? (
@@ -525,7 +569,9 @@ function EquipmentCard({
             ) : null}
           </p>
         </div>
-        <StatusBadge status={item.status} />
+        <div data-testid="equipment-row-status">
+          <StatusBadge status={item.status} />
+        </div>
       </header>
 
       <dl className="mt-3 space-y-1 text-sm">
@@ -544,8 +590,12 @@ function EquipmentCard({
       </dl>
 
       <div className="mt-3 flex items-center justify-end gap-1">
-        <GhostButton onClick={onEdit}>עריכה</GhostButton>
-        <GhostButton onClick={onStatus}>שינוי סטטוס</GhostButton>
+        <GhostButton onClick={onEdit} testId="equipment-row-edit">
+          עריכה
+        </GhostButton>
+        <GhostButton onClick={onStatus} testId="equipment-row-status-change">
+          שינוי סטטוס
+        </GhostButton>
       </div>
     </div>
   );
@@ -597,7 +647,10 @@ export function EquipmentManager({
       </header>
 
       <div className="flex flex-col md:flex-row gap-2 md:items-center">
-        <PrimaryButton onClick={() => setFormState({ mode: 'add' })}>
+        <PrimaryButton
+          onClick={() => setFormState({ mode: 'add' })}
+          testId="equipment-add-button"
+        >
           + הוסף {equipmentLabel}
         </PrimaryButton>
         <select
@@ -631,6 +684,7 @@ export function EquipmentManager({
       {message && (
         <div
           role={message.kind === 'error' ? 'alert' : 'status'}
+          data-testid={message.kind === 'success' ? 'toast-success' : 'toast-error'}
           className={`p-3 rounded-lg text-sm text-center border ${
             message.kind === 'success'
               ? 'bg-green-50 border-green-200 text-green-700'
@@ -642,7 +696,10 @@ export function EquipmentManager({
       )}
 
       {items.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+        <div
+          data-testid="equipment-empty"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center"
+        >
           <p className="text-gray-600">
             אין {equipmentLabel} עדיין. הוסף את ה{equipmentLabel} הראשון שלך.
           </p>
@@ -655,7 +712,10 @@ export function EquipmentManager({
         </div>
       ) : (
         <>
-          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <div
+            data-testid="equipment-list"
+            className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto"
+          >
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-right">
                 <tr>
@@ -670,8 +730,15 @@ export function EquipmentManager({
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-4 py-3 text-gray-900 font-medium">
+                  <tr
+                    key={item.id}
+                    data-testid="equipment-row"
+                    data-equipment-id={item.id}
+                  >
+                    <td
+                      data-testid="equipment-row-name"
+                      className="px-4 py-3 text-gray-900 font-medium"
+                    >
                       {item.name}
                     </td>
                     <td className="px-4 py-3 text-gray-700">
@@ -680,7 +747,10 @@ export function EquipmentManager({
                     <td className="px-4 py-3 text-gray-700" dir="ltr">
                       {item.identifier ?? '—'}
                     </td>
-                    <td className="px-4 py-3">
+                    <td
+                      data-testid="equipment-row-status"
+                      className="px-4 py-3"
+                    >
                       <StatusBadge status={item.status} />
                     </td>
                     <td className="px-4 py-3">
@@ -693,10 +763,14 @@ export function EquipmentManager({
                       <div className="flex items-center gap-1 flex-wrap">
                         <GhostButton
                           onClick={() => setFormState({ mode: 'edit', item })}
+                          testId="equipment-row-edit"
                         >
                           עריכה
                         </GhostButton>
-                        <GhostButton onClick={() => setStatusItem(item)}>
+                        <GhostButton
+                          onClick={() => setStatusItem(item)}
+                          testId="equipment-row-status-change"
+                        >
                           שינוי סטטוס
                         </GhostButton>
                       </div>
@@ -707,7 +781,7 @@ export function EquipmentManager({
             </table>
           </div>
 
-          <div className="md:hidden space-y-3">
+          <div data-testid="equipment-list" className="md:hidden space-y-3">
             {filtered.map((item) => (
               <EquipmentCard
                 key={item.id}

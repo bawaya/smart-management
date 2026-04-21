@@ -174,29 +174,56 @@ export function CostAnalysisView({
                         ? 'bg-yellow-500'
                         : 'bg-green-500';
                   return (
-                    <tr key={r.id}>
+                    <tr
+                      key={r.id}
+                      data-testid="report-cost-row"
+                      data-vehicle-id={r.id}
+                    >
                       <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900">
+                        <div
+                          data-testid="report-cost-vehicle-name"
+                          className="font-medium text-gray-900"
+                        >
                           {r.name}
                         </div>
                         <div className="text-xs text-gray-500" dir="ltr">
                           {r.licensePlate}
                         </div>
                       </td>
-                      <td className="px-4 py-3" dir="ltr">
+                      <td
+                        data-testid="report-cost-daily-fuel"
+                        className="px-4 py-3"
+                        dir="ltr"
+                      >
                         {formatILSDecimal(r.dailyFuel)}
                       </td>
-                      <td className="px-4 py-3" dir="ltr">
+                      <td
+                        data-testid="report-cost-daily-insurance"
+                        className="px-4 py-3"
+                        dir="ltr"
+                      >
                         {formatILSDecimal(r.dailyInsurance)}
                       </td>
-                      <td className="px-4 py-3" dir="ltr">
+                      <td
+                        data-testid="report-cost-daily-license"
+                        className="px-4 py-3"
+                        dir="ltr"
+                      >
                         {formatILSDecimal(r.dailyLicense)}
                       </td>
-                      <td className="px-4 py-3" dir="ltr">
+                      <td
+                        data-testid="report-cost-daily-maintenance"
+                        className="px-4 py-3"
+                        dir="ltr"
+                      >
                         {formatILSDecimal(r.dailyMaintenance)}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-bold text-gray-900" dir="ltr">
+                        <div
+                          data-testid="report-cost-daily-total"
+                          className="font-bold text-gray-900"
+                          dir="ltr"
+                        >
                           {formatILSDecimal(r.totalDailyCost)}
                         </div>
                         <div className="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden w-24">
@@ -208,10 +235,15 @@ export function CostAnalysisView({
                           />
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-medium text-gray-900" dir="ltr">
+                      <td
+                        data-testid="report-cost-revenue"
+                        className="px-4 py-3 font-medium text-gray-900"
+                        dir="ltr"
+                      >
                         {formatILS(r.revenue)}
                       </td>
                       <td
+                        data-testid="report-cost-profit"
                         className={`px-4 py-3 font-bold ${profitClass(r.profit)}`}
                         dir="ltr"
                       >

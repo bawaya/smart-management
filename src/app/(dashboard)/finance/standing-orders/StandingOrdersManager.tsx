@@ -137,15 +137,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -159,14 +162,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -334,12 +340,17 @@ function OrderFormModal({
           יש להוסיף חשבון בנק לפני הגדרת הוראת קבע.
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          data-testid="standing-orders-form"
+          className="space-y-4"
+        >
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               חשבון בנק <span className="text-red-500">*</span>
             </label>
             <select
+              data-testid="standing-orders-form-bank-account-id"
               value={bankAccountId}
               onChange={(e) => setBankAccountId(e.target.value)}
               required
@@ -361,6 +372,7 @@ function OrderFormModal({
               </label>
               <input
                 type="text"
+                data-testid="standing-orders-form-payee-name"
                 value={payeeName}
                 onChange={(e) => setPayeeName(e.target.value)}
                 required
@@ -373,6 +385,7 @@ function OrderFormModal({
               </label>
               <input
                 type="number"
+                data-testid="standing-orders-form-amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required
@@ -387,6 +400,7 @@ function OrderFormModal({
                 תדירות
               </label>
               <select
+                data-testid="standing-orders-form-frequency"
                 value={frequency}
                 onChange={(e) =>
                   setFrequency(e.target.value as StandingOrderFrequency)
@@ -415,6 +429,7 @@ function OrderFormModal({
                 </label>
                 <input
                   type="number"
+                  data-testid="standing-orders-form-day-of-month"
                   value={dayOfMonth}
                   onChange={(e) => setDayOfMonth(e.target.value)}
                   min="1"
@@ -430,6 +445,7 @@ function OrderFormModal({
                 קטגוריה
               </label>
               <select
+                data-testid="standing-orders-form-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className={INPUT_CLASS}
@@ -448,6 +464,7 @@ function OrderFormModal({
               </label>
               <input
                 type="text"
+                data-testid="standing-orders-form-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className={INPUT_CLASS}
@@ -459,6 +476,7 @@ function OrderFormModal({
               </label>
               <input
                 type="date"
+                data-testid="standing-orders-form-start-date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 required
@@ -472,6 +490,7 @@ function OrderFormModal({
               </label>
               <input
                 type="date"
+                data-testid="standing-orders-form-end-date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 dir="ltr"
@@ -485,6 +504,7 @@ function OrderFormModal({
               הערות
             </label>
             <textarea
+              data-testid="standing-orders-form-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
@@ -495,6 +515,7 @@ function OrderFormModal({
           {error && (
             <div
               role="alert"
+              data-testid="standing-orders-form-error"
               className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
             >
               {error}
@@ -502,10 +523,18 @@ function OrderFormModal({
           )}
 
           <div className="flex items-center justify-end gap-2 pt-2">
-            <GhostButton onClick={onClose} disabled={submitting}>
+            <GhostButton
+              onClick={onClose}
+              disabled={submitting}
+              testId="standing-orders-form-cancel"
+            >
               ביטול
             </GhostButton>
-            <PrimaryButton type="submit" disabled={submitting}>
+            <PrimaryButton
+              type="submit"
+              disabled={submitting}
+              testId="standing-orders-form-submit"
+            >
               {submitting ? 'שומר...' : 'שמור'}
             </PrimaryButton>
           </div>
@@ -552,38 +581,45 @@ function ToggleModal({
 
   return (
     <Modal onClose={onClose} size="md">
-      <h3 className="text-lg font-bold text-gray-900">
-        {activating ? 'הפעלת הוראת קבע' : 'השבתת הוראת קבע'}
-      </h3>
-      <p className="mt-2 text-sm text-gray-600">
-        {activating
-          ? `להפעיל מחדש את ${order.payee_name}?`
-          : `להשבית את ${order.payee_name}?`}
-      </p>
-      {error && (
-        <div
-          role="alert"
-          className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
-        >
-          {error}
+      <div data-testid="standing-orders-toggle-modal">
+        <h3 className="text-lg font-bold text-gray-900">
+          {activating ? 'הפעלת הוראת קבע' : 'השבתת הוראת קבע'}
+        </h3>
+        <p className="mt-2 text-sm text-gray-600">
+          {activating
+            ? `להפעיל מחדש את ${order.payee_name}?`
+            : `להשבית את ${order.payee_name}?`}
+        </p>
+        {error && (
+          <div
+            role="alert"
+            className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
+          >
+            {error}
+          </div>
+        )}
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="standing-orders-toggle-cancel"
+          >
+            ביטול
+          </GhostButton>
+          <button
+            type="button"
+            data-testid="standing-orders-toggle-confirm"
+            onClick={handleConfirm}
+            disabled={submitting}
+            className={`px-4 py-2 rounded-md text-white font-bold text-sm transition-colors disabled:opacity-60 ${
+              activating
+                ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-red-600 hover:bg-red-700'
+            }`}
+          >
+            {submitting ? '...' : activating ? 'הפעל' : 'השבת'}
+          </button>
         </div>
-      )}
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <GhostButton onClick={onClose} disabled={submitting}>
-          ביטול
-        </GhostButton>
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={submitting}
-          className={`px-4 py-2 rounded-md text-white font-bold text-sm transition-colors disabled:opacity-60 ${
-            activating
-              ? 'bg-green-600 hover:bg-green-700'
-              : 'bg-red-600 hover:bg-red-700'
-          }`}
-        >
-          {submitting ? '...' : activating ? 'הפעל' : 'השבת'}
-        </button>
       </div>
     </Modal>
   );
@@ -601,16 +637,25 @@ function OrderCard({
   const active = order.is_active === 1;
   return (
     <div
+      data-testid="standing-orders-row"
+      data-order-id={order.id}
+      data-standing-orders-active={active ? '1' : '0'}
       className={`bg-white rounded-xl border border-gray-200 shadow-sm p-4 ${
         active ? '' : 'opacity-60'
       }`}
     >
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="font-bold text-gray-900 truncate">
+          <h3
+            data-testid="standing-orders-row-payee"
+            className="font-bold text-gray-900 truncate"
+          >
             {order.payee_name}
           </h3>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p
+            data-testid="standing-orders-row-frequency"
+            className="text-xs text-gray-500 mt-0.5"
+          >
             {FREQUENCY_LABELS[order.frequency]}
             {order.day_of_month != null
               ? ` · ${order.day_of_month} בחודש`
@@ -619,7 +664,11 @@ function OrderCard({
         </div>
         <StatusBadge active={active} />
       </header>
-      <p className="mt-2 font-bold text-gray-900" dir="ltr">
+      <p
+        data-testid="standing-orders-row-amount"
+        className="mt-2 font-bold text-gray-900"
+        dir="ltr"
+      >
         {formatILS(order.amount)}
       </p>
       <dl className="mt-2 space-y-0.5 text-sm">
@@ -629,15 +678,18 @@ function OrderCard({
         </div>
         <div className="flex justify-between">
           <dt className="text-gray-600">החיוב הבא:</dt>
-          <dd>
+          <dd data-testid="standing-orders-row-next-execution">
             <NextExecutionCell date={order.next_execution} active={active} />
           </dd>
         </div>
       </dl>
       <div className="mt-3 flex items-center justify-end gap-1">
-        <GhostButton onClick={onEdit}>עריכה</GhostButton>
+        <GhostButton onClick={onEdit} testId="standing-orders-row-edit">
+          עריכה
+        </GhostButton>
         <button
           type="button"
+          data-testid="standing-orders-row-toggle"
           onClick={onToggle}
           className={`px-3 py-2 rounded-md text-sm transition-colors ${
             active
@@ -723,7 +775,10 @@ export function StandingOrdersManager({
       </div>
 
       <div>
-        <PrimaryButton onClick={() => setModal({ kind: 'add' })}>
+        <PrimaryButton
+          onClick={() => setModal({ kind: 'add' })}
+          testId="standing-orders-add-button"
+        >
           + הוסף הוראת קבע
         </PrimaryButton>
       </div>
@@ -742,12 +797,18 @@ export function StandingOrdersManager({
       )}
 
       {orders.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+        <div
+          data-testid="standing-orders-empty"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center"
+        >
           <p className="text-gray-600">אין הוראות קבע.</p>
         </div>
       ) : (
         <>
-          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <div
+            data-testid="standing-orders-list"
+            className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto"
+          >
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-right">
                 <tr>
@@ -771,21 +832,40 @@ export function StandingOrdersManager({
                 {orders.map((o) => {
                   const active = o.is_active === 1;
                   return (
-                    <tr key={o.id} className={active ? '' : 'opacity-60'}>
-                      <td className="px-4 py-3 text-gray-900 font-medium">
+                    <tr
+                      key={o.id}
+                      data-testid="standing-orders-row"
+                      data-order-id={o.id}
+                      data-standing-orders-active={active ? '1' : '0'}
+                      className={active ? '' : 'opacity-60'}
+                    >
+                      <td
+                        data-testid="standing-orders-row-payee"
+                        className="px-4 py-3 text-gray-900 font-medium"
+                      >
                         {o.payee_name}
                       </td>
-                      <td className="px-4 py-3 font-medium" dir="ltr">
+                      <td
+                        data-testid="standing-orders-row-amount"
+                        className="px-4 py-3 font-medium"
+                        dir="ltr"
+                      >
                         {formatILS(o.amount)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td
+                        data-testid="standing-orders-row-frequency"
+                        className="px-4 py-3"
+                      >
                         {FREQUENCY_LABELS[o.frequency]}
                       </td>
                       <td className="px-4 py-3" dir="ltr">
                         {o.day_of_month ?? '—'}
                       </td>
                       <td className="px-4 py-3 truncate">{o.bank_name}</td>
-                      <td className="px-4 py-3">
+                      <td
+                        data-testid="standing-orders-row-next-execution"
+                        className="px-4 py-3"
+                      >
                         <NextExecutionCell
                           date={o.next_execution}
                           active={active}
@@ -800,11 +880,13 @@ export function StandingOrdersManager({
                             onClick={() =>
                               setModal({ kind: 'edit', order: o })
                             }
+                            testId="standing-orders-row-edit"
                           >
                             עריכה
                           </GhostButton>
                           <button
                             type="button"
+                            data-testid="standing-orders-row-toggle"
                             onClick={() =>
                               setModal({ kind: 'toggle', order: o })
                             }
@@ -825,7 +907,7 @@ export function StandingOrdersManager({
             </table>
           </div>
 
-          <div className="md:hidden space-y-3">
+          <div data-testid="standing-orders-list" className="md:hidden space-y-3">
             {orders.map((o) => (
               <OrderCard
                 key={o.id}

@@ -140,19 +140,31 @@ export function FuelReport({ data, company }: FuelReportProps) {
         <section className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="bg-white rounded-lg border border-gray-200 p-3">
             <p className="text-xs text-gray-500">סה״כ עלות</p>
-            <p className="text-xl font-bold text-gray-900 mt-0.5" dir="ltr">
+            <p
+              data-testid="report-fuel-total-cost"
+              className="text-xl font-bold text-gray-900 mt-0.5"
+              dir="ltr"
+            >
               {formatILS(data.totalCost)}
             </p>
           </div>
           <div className="bg-white rounded-lg border border-gray-200 p-3">
             <p className="text-xs text-gray-500">סה״כ ליטרים</p>
-            <p className="text-xl font-bold text-gray-900 mt-0.5" dir="ltr">
+            <p
+              data-testid="report-fuel-total-liters"
+              className="text-xl font-bold text-gray-900 mt-0.5"
+              dir="ltr"
+            >
               {formatLiters(data.totalLiters)}
             </p>
           </div>
           <div className="bg-white rounded-lg border border-gray-200 p-3">
             <p className="text-xs text-gray-500">ממוצע למחיר ליטר</p>
-            <p className="text-xl font-bold text-gray-900 mt-0.5" dir="ltr">
+            <p
+              data-testid="report-fuel-avg-price-per-liter"
+              className="text-xl font-bold text-gray-900 mt-0.5"
+              dir="ltr"
+            >
               {formatILSDecimal(data.avgPricePerLiter)}
             </p>
           </div>
@@ -182,19 +194,34 @@ export function FuelReport({ data, company }: FuelReportProps) {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {data.byVehicle.map((row) => (
-                    <tr key={row.vehicleId}>
+                    <tr
+                      key={row.vehicleId}
+                      data-testid="report-fuel-vehicle-row"
+                      data-vehicle-id={row.vehicleId}
+                    >
                       <td className="px-3 py-2">
-                        <div className="font-medium text-gray-900">
+                        <div
+                          data-testid="report-fuel-vehicle-name"
+                          className="font-medium text-gray-900"
+                        >
                           {row.vehicleName}
                         </div>
                         <div className="text-xs text-gray-500" dir="ltr">
                           {row.licensePlate}
                         </div>
                       </td>
-                      <td className="px-3 py-2" dir="ltr">
+                      <td
+                        data-testid="report-fuel-vehicle-liters"
+                        className="px-3 py-2"
+                        dir="ltr"
+                      >
                         {formatLiters(row.liters)}
                       </td>
-                      <td className="px-3 py-2 font-medium" dir="ltr">
+                      <td
+                        data-testid="report-fuel-vehicle-cost"
+                        className="px-3 py-2 font-medium"
+                        dir="ltr"
+                      >
                         {formatILS(row.cost)}
                       </td>
                       <td className="px-3 py-2" dir="ltr">

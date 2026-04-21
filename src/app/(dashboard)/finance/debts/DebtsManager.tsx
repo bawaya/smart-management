@@ -178,15 +178,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -200,14 +203,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -360,8 +366,12 @@ function DebtFormModal({
         </h3>
         <DirectionBadge type={debtType} />
       </header>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
+      <form
+        onSubmit={handleSubmit}
+        data-testid="debts-form"
+        className="space-y-4"
+      >
+        <div data-testid="debts-form-counterparty-type">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             סוג הצד השני
           </label>
@@ -441,6 +451,7 @@ function DebtFormModal({
             </label>
             <input
               type="text"
+              data-testid="debts-form-counterparty"
               value={counterparty}
               onChange={(e) => setCounterparty(e.target.value)}
               required
@@ -453,6 +464,7 @@ function DebtFormModal({
             </label>
             <input
               type="number"
+              data-testid="debts-form-original-amount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
@@ -468,6 +480,7 @@ function DebtFormModal({
             </label>
             <input
               type="date"
+              data-testid="debts-form-issue-date"
               value={issueDate}
               onChange={(e) => setIssueDate(e.target.value)}
               required
@@ -481,6 +494,7 @@ function DebtFormModal({
             </label>
             <input
               type="date"
+              data-testid="debts-form-due-date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
               dir="ltr"
@@ -495,6 +509,7 @@ function DebtFormModal({
           </label>
           <input
             type="text"
+            data-testid="debts-form-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className={INPUT_CLASS}
@@ -506,6 +521,7 @@ function DebtFormModal({
             הערות
           </label>
           <textarea
+            data-testid="debts-form-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
@@ -516,6 +532,7 @@ function DebtFormModal({
         {error && (
           <div
             role="alert"
+            data-testid="debts-form-error"
             className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
           >
             {error}
@@ -523,10 +540,18 @@ function DebtFormModal({
         )}
 
         <div className="flex items-center justify-end gap-2 pt-2">
-          <GhostButton onClick={onClose} disabled={submitting}>
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="debts-form-cancel"
+          >
             ביטול
           </GhostButton>
-          <PrimaryButton type="submit" disabled={submitting}>
+          <PrimaryButton
+            type="submit"
+            disabled={submitting}
+            testId="debts-form-submit"
+          >
             {submitting ? 'שומר...' : 'שמור'}
           </PrimaryButton>
         </div>
@@ -598,13 +623,18 @@ function PaymentModal({
         </span>
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+      <form
+        onSubmit={handleSubmit}
+        data-testid="debts-payment-modal"
+        className="mt-4 space-y-3"
+      >
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             סכום <span className="text-red-500">*</span>
           </label>
           <input
             type="number"
+            data-testid="debts-payment-amount"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             required
@@ -620,6 +650,7 @@ function PaymentModal({
           </label>
           <input
             type="date"
+            data-testid="debts-payment-date"
             value={paymentDate}
             onChange={(e) => setPaymentDate(e.target.value)}
             required
@@ -632,6 +663,7 @@ function PaymentModal({
             אמצעי תשלום
           </label>
           <select
+            data-testid="debts-payment-method"
             value={method}
             onChange={(e) => setMethod(e.target.value as DebtPaymentMethod)}
             className={INPUT_CLASS}
@@ -655,6 +687,7 @@ function PaymentModal({
         {error && (
           <div
             role="alert"
+            data-testid="debts-payment-error"
             className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
           >
             {error}
@@ -662,10 +695,18 @@ function PaymentModal({
         )}
 
         <div className="flex items-center justify-end gap-2 pt-2">
-          <GhostButton onClick={onClose} disabled={submitting}>
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="debts-payment-cancel"
+          >
             ביטול
           </GhostButton>
-          <PrimaryButton type="submit" disabled={submitting}>
+          <PrimaryButton
+            type="submit"
+            disabled={submitting}
+            testId="debts-payment-submit"
+          >
             {submitting ? 'רושם...' : 'רשום תשלום'}
           </PrimaryButton>
         </div>
@@ -843,6 +884,7 @@ export function DebtsManager({
       <div className="flex flex-col md:flex-row gap-2 md:items-end flex-wrap">
         <button
           type="button"
+          data-testid="debts-add-button-owed-to-me"
           onClick={() => setModal({ kind: 'add', debtType: 'owed_to_me' })}
           className="px-4 py-2 rounded-md bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition-colors"
         >
@@ -850,6 +892,7 @@ export function DebtsManager({
         </button>
         <button
           type="button"
+          data-testid="debts-add-button-i-owe"
           onClick={() => setModal({ kind: 'add', debtType: 'i_owe' })}
           className="px-4 py-2 rounded-md bg-red-600 text-white font-bold text-sm hover:bg-red-700 transition-colors"
         >
@@ -899,7 +942,10 @@ export function DebtsManager({
       )}
 
       {debts.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+        <div
+          data-testid="debts-empty"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center"
+        >
           <p className="text-gray-600">אין חובות רשומים.</p>
         </div>
       ) : filtered.length === 0 ? (
@@ -907,7 +953,10 @@ export function DebtsManager({
           <p className="text-gray-500 text-sm">אין חובות התואמים לסינון</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+        <div
+          data-testid="debts-list"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto"
+        >
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-right">
               <tr>
@@ -929,23 +978,39 @@ export function DebtsManager({
                 const canEdit =
                   d.status === 'active' || d.status === 'partial';
                 return (
-                  <tr key={d.id}>
-                    <td className="px-4 py-3">
+                  <tr
+                    key={d.id}
+                    data-testid="debts-row"
+                    data-debt-id={d.id}
+                    data-debts-type={d.debt_type}
+                  >
+                    <td data-testid="debts-row-debt-type" className="px-4 py-3">
                       <DirectionBadge type={d.debt_type} />
                     </td>
-                    <td className="px-4 py-3 text-gray-900">
+                    <td
+                      data-testid="debts-row-counterparty"
+                      className="px-4 py-3 text-gray-900"
+                    >
                       {d.counterparty}
                     </td>
-                    <td className="px-4 py-3" dir="ltr">
+                    <td
+                      data-testid="debts-row-amount"
+                      className="px-4 py-3"
+                      dir="ltr"
+                    >
                       {formatILS(d.original_amount)}
                     </td>
-                    <td className="px-4 py-3 font-medium text-gray-900" dir="ltr">
+                    <td
+                      data-testid="debts-row-remaining"
+                      className="px-4 py-3 font-medium text-gray-900"
+                      dir="ltr"
+                    >
                       {formatILS(d.remaining_amount)}
                     </td>
                     <td className="px-4 py-3" dir="ltr">
                       {formatDateIL(d.issue_date)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-testid="debts-row-status" className="px-4 py-3">
                       <StatusBadge status={d.status} />
                     </td>
                     <td className="px-4 py-3">
@@ -953,6 +1018,7 @@ export function DebtsManager({
                         {canPay && (
                           <button
                             type="button"
+                            data-testid="debts-row-add-payment"
                             onClick={() =>
                               setModal({ kind: 'payment', debt: d })
                             }
@@ -963,6 +1029,7 @@ export function DebtsManager({
                         )}
                         <GhostButton
                           onClick={() => setModal({ kind: 'view', debt: d })}
+                          testId="debts-row-view"
                         >
                           צפייה
                         </GhostButton>
@@ -971,6 +1038,7 @@ export function DebtsManager({
                             onClick={() =>
                               setModal({ kind: 'edit', debt: d })
                             }
+                            testId="debts-row-edit"
                           >
                             עריכה
                           </GhostButton>

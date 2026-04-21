@@ -205,23 +205,43 @@ export function WorkersReport({ data, company }: WorkersReportProps) {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {data.byWorker.map((w) => (
-                    <tr key={w.workerId}>
-                      <td className="px-3 py-2 text-gray-900 font-medium">
+                    <tr
+                      key={w.workerId}
+                      data-testid="report-workers-row"
+                      data-worker-id={w.workerId}
+                    >
+                      <td
+                        data-testid="report-workers-row-name"
+                        className="px-3 py-2 text-gray-900 font-medium"
+                      >
                         {w.workerName}
                       </td>
-                      <td className="px-3 py-2" dir="ltr">
+                      <td
+                        data-testid="report-workers-row-days"
+                        className="px-3 py-2"
+                        dir="ltr"
+                      >
                         {w.days}
                       </td>
                       <td className="px-3 py-2" dir="ltr">
                         {formatILS(w.avgDailyCost)}
                       </td>
-                      <td className="px-3 py-2" dir="ltr">
+                      <td
+                        data-testid="report-workers-row-cost"
+                        className="px-3 py-2"
+                        dir="ltr"
+                      >
                         {formatILS(w.totalCost)}
                       </td>
-                      <td className="px-3 py-2" dir="ltr">
+                      <td
+                        data-testid="report-workers-row-revenue"
+                        className="px-3 py-2"
+                        dir="ltr"
+                      >
                         {formatILS(w.totalRevenue)}
                       </td>
                       <td
+                        data-testid="report-workers-row-profit"
                         className={`px-3 py-2 font-bold ${profitClass(w.profit)}`}
                         dir="ltr"
                       >
@@ -241,13 +261,22 @@ export function WorkersReport({ data, company }: WorkersReportProps) {
                       {data.totalDays}
                     </td>
                     <td className="px-3 py-2" />
-                    <td className="px-3 py-2 text-red-700" dir="ltr">
+                    <td
+                      data-testid="report-workers-total-cost"
+                      className="px-3 py-2 text-red-700"
+                      dir="ltr"
+                    >
                       {formatILS(data.totalCost)}
                     </td>
-                    <td className="px-3 py-2 text-green-700" dir="ltr">
+                    <td
+                      data-testid="report-workers-total-revenue"
+                      className="px-3 py-2 text-green-700"
+                      dir="ltr"
+                    >
                       {formatILS(data.totalRevenue)}
                     </td>
                     <td
+                      data-testid="report-workers-total-profit"
                       className={`px-3 py-2 ${profitClass(data.totalProfit)}`}
                       dir="ltr"
                     >

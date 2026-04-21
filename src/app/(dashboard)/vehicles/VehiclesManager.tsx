@@ -119,15 +119,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -141,14 +144,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -250,7 +256,11 @@ function VehicleFormModal({
       <h3 className="text-lg font-bold text-gray-900 mb-4">
         {editing ? 'עריכת רכב' : 'הוספת רכב'}
       </h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        data-testid="vehicles-form"
+        className="space-y-4"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -258,6 +268,7 @@ function VehicleFormModal({
             </label>
             <input
               type="text"
+              data-testid="vehicles-form-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -270,6 +281,7 @@ function VehicleFormModal({
             </label>
             <input
               type="text"
+              data-testid="vehicles-form-license-plate"
               value={licensePlate}
               onChange={(e) => setLicensePlate(e.target.value)}
               required
@@ -279,7 +291,7 @@ function VehicleFormModal({
           </div>
         </div>
 
-        <fieldset>
+        <fieldset data-testid="vehicles-form-type">
           <legend className="block text-sm font-medium text-gray-700 mb-2">
             סוג
           </legend>
@@ -317,6 +329,7 @@ function VehicleFormModal({
             </label>
             <input
               type="number"
+              data-testid="vehicles-form-annual-insurance-cost"
               dir="ltr"
               min="0"
               step="0.01"
@@ -332,6 +345,7 @@ function VehicleFormModal({
             </label>
             <input
               type="number"
+              data-testid="vehicles-form-annual-license-cost"
               dir="ltr"
               min="0"
               step="0.01"
@@ -347,6 +361,7 @@ function VehicleFormModal({
             </label>
             <input
               type="date"
+              data-testid="vehicles-form-insurance-expiry"
               value={insuranceExpiry}
               onChange={(e) => setInsuranceExpiry(e.target.value)}
               dir="ltr"
@@ -359,6 +374,7 @@ function VehicleFormModal({
             </label>
             <input
               type="date"
+              data-testid="vehicles-form-license-expiry"
               value={licenseExpiry}
               onChange={(e) => setLicenseExpiry(e.target.value)}
               dir="ltr"
@@ -372,6 +388,7 @@ function VehicleFormModal({
             הערות
           </label>
           <textarea
+            data-testid="vehicles-form-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
@@ -382,6 +399,7 @@ function VehicleFormModal({
         {error && (
           <div
             role="alert"
+            data-testid="vehicles-form-error"
             className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
           >
             {error}
@@ -389,10 +407,18 @@ function VehicleFormModal({
         )}
 
         <div className="flex items-center justify-end gap-2 pt-2">
-          <GhostButton onClick={onClose} disabled={submitting}>
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="vehicles-form-cancel"
+          >
             ביטול
           </GhostButton>
-          <PrimaryButton type="submit" disabled={submitting}>
+          <PrimaryButton
+            type="submit"
+            disabled={submitting}
+            testId="vehicles-form-submit"
+          >
             {submitting ? 'שומר...' : 'שמור'}
           </PrimaryButton>
         </div>
@@ -436,38 +462,46 @@ function ToggleModal({
 
   return (
     <Modal onClose={onClose} size="md">
-      <h3 className="text-lg font-bold text-gray-900">
-        {activating ? 'הפעלת רכב' : 'השבתת רכב'}
-      </h3>
-      <p className="mt-2 text-sm text-gray-600">
-        {activating
-          ? `האם להפעיל מחדש את ${vehicle.name}?`
-          : `האם להשבית את ${vehicle.name}? לא ניתן יהיה לצרף אותו לרישומים חדשים.`}
-      </p>
-      {error && (
-        <div
-          role="alert"
-          className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
-        >
-          {error}
+      <div data-testid="vehicles-toggle-modal">
+        <h3 className="text-lg font-bold text-gray-900">
+          {activating ? 'הפעלת רכב' : 'השבתת רכב'}
+        </h3>
+        <p className="mt-2 text-sm text-gray-600">
+          {activating
+            ? `האם להפעיל מחדש את ${vehicle.name}?`
+            : `האם להשבית את ${vehicle.name}? לא ניתן יהיה לצרף אותו לרישומים חדשים.`}
+        </p>
+        {error && (
+          <div
+            role="alert"
+            data-testid="vehicles-toggle-error"
+            className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
+          >
+            {error}
+          </div>
+        )}
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="vehicles-toggle-cancel"
+          >
+            ביטול
+          </GhostButton>
+          <button
+            type="button"
+            data-testid="vehicles-toggle-confirm"
+            onClick={handleConfirm}
+            disabled={submitting}
+            className={`px-4 py-2 rounded-md text-white font-bold text-sm transition-colors disabled:opacity-60 ${
+              activating
+                ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-red-600 hover:bg-red-700'
+            }`}
+          >
+            {submitting ? '...' : activating ? 'הפעל' : 'השבת'}
+          </button>
         </div>
-      )}
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <GhostButton onClick={onClose} disabled={submitting}>
-          ביטול
-        </GhostButton>
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={submitting}
-          className={`px-4 py-2 rounded-md text-white font-bold text-sm transition-colors disabled:opacity-60 ${
-            activating
-              ? 'bg-green-600 hover:bg-green-700'
-              : 'bg-red-600 hover:bg-red-700'
-          }`}
-        >
-          {submitting ? '...' : activating ? 'הפעל' : 'השבת'}
-        </button>
       </div>
     </Modal>
   );
@@ -485,19 +519,34 @@ function VehicleCard({
   const active = vehicle.is_active === 1;
   return (
     <div
+      data-testid="vehicles-row"
+      data-vehicle-id={vehicle.id}
+      data-vehicles-active={active ? '1' : '0'}
       className={`bg-white rounded-xl border border-gray-200 shadow-sm p-4 ${
         active ? '' : 'opacity-60'
       }`}
     >
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="font-bold text-gray-900 truncate">
+          <h3
+            data-testid="vehicles-row-name"
+            className="font-bold text-gray-900 truncate"
+          >
             {vehicle.name}
             {!active && (
-              <span className="ms-2 text-xs text-gray-500">(מושבת)</span>
+              <span
+                data-testid="vehicles-row-active"
+                className="ms-2 text-xs text-gray-500"
+              >
+                (מושבת)
+              </span>
             )}
           </h3>
-          <p className="text-sm text-gray-600" dir="ltr">
+          <p
+            data-testid="vehicles-row-plate"
+            className="text-sm text-gray-600"
+            dir="ltr"
+          >
             {vehicle.license_plate}
           </p>
         </div>
@@ -532,9 +581,12 @@ function VehicleCard({
       </dl>
 
       <div className="mt-3 flex items-center justify-end gap-1">
-        <GhostButton onClick={onEdit}>עריכה</GhostButton>
+        <GhostButton onClick={onEdit} testId="vehicles-row-edit">
+          עריכה
+        </GhostButton>
         <button
           type="button"
+          data-testid="vehicles-row-toggle"
           onClick={onToggle}
           className={`px-3 py-2 rounded-md text-sm transition-colors ${
             active
@@ -582,7 +634,10 @@ export function VehiclesManager({ tenantId, vehicles }: VehiclesManagerProps) {
       </header>
 
       <div className="flex flex-col md:flex-row gap-2 md:items-center">
-        <PrimaryButton onClick={() => setFormState({ mode: 'add' })}>
+        <PrimaryButton
+          onClick={() => setFormState({ mode: 'add' })}
+          testId="vehicles-add-button"
+        >
           + הוסף רכב
         </PrimaryButton>
         <select
@@ -611,7 +666,10 @@ export function VehiclesManager({ tenantId, vehicles }: VehiclesManagerProps) {
       )}
 
       {vehicles.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+        <div
+          data-testid="vehicles-empty"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center"
+        >
           <p className="text-gray-600">
             אין רכבים עדיין. הוסף את הרכב הראשון שלך.
           </p>
@@ -622,7 +680,10 @@ export function VehiclesManager({ tenantId, vehicles }: VehiclesManagerProps) {
         </div>
       ) : (
         <>
-          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <div
+            data-testid="vehicles-list"
+            className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto"
+          >
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-right">
                 <tr>
@@ -650,16 +711,32 @@ export function VehiclesManager({ tenantId, vehicles }: VehiclesManagerProps) {
                 {filtered.map((vehicle) => {
                   const active = vehicle.is_active === 1;
                   return (
-                    <tr key={vehicle.id} className={active ? '' : 'opacity-60'}>
-                      <td className="px-4 py-3 text-gray-900 font-medium">
+                    <tr
+                      key={vehicle.id}
+                      data-testid="vehicles-row"
+                      data-vehicle-id={vehicle.id}
+                      data-vehicles-active={active ? '1' : '0'}
+                      className={active ? '' : 'opacity-60'}
+                    >
+                      <td
+                        data-testid="vehicles-row-name"
+                        className="px-4 py-3 text-gray-900 font-medium"
+                      >
                         {vehicle.name}
                         {!active && (
-                          <span className="ms-2 text-xs text-gray-500">
+                          <span
+                            data-testid="vehicles-row-active"
+                            className="ms-2 text-xs text-gray-500"
+                          >
                             (מושבת)
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-700" dir="ltr">
+                      <td
+                        data-testid="vehicles-row-plate"
+                        className="px-4 py-3 text-gray-700"
+                        dir="ltr"
+                      >
                         {vehicle.license_plate}
                       </td>
                       <td className="px-4 py-3">
@@ -683,11 +760,13 @@ export function VehiclesManager({ tenantId, vehicles }: VehiclesManagerProps) {
                             onClick={() =>
                               setFormState({ mode: 'edit', vehicle })
                             }
+                            testId="vehicles-row-edit"
                           >
                             עריכה
                           </GhostButton>
                           <button
                             type="button"
+                            data-testid="vehicles-row-toggle"
                             onClick={() => setToggleVehicle(vehicle)}
                             className={`px-3 py-2 rounded-md text-sm transition-colors ${
                               active
@@ -706,7 +785,7 @@ export function VehiclesManager({ tenantId, vehicles }: VehiclesManagerProps) {
             </table>
           </div>
 
-          <div className="md:hidden space-y-3">
+          <div data-testid="vehicles-list" className="md:hidden space-y-3">
             {filtered.map((vehicle) => (
               <VehicleCard
                 key={vehicle.id}

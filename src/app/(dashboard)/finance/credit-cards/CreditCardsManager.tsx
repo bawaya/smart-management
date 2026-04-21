@@ -101,15 +101,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -123,14 +126,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -235,12 +241,17 @@ function CardFormModal({
           יש להוסיף חשבון בנק לפני הוספת כרטיס אשראי.
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          data-testid="credit-cards-form"
+          className="space-y-4"
+        >
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               חשבון בנק <span className="text-red-500">*</span>
             </label>
             <select
+              data-testid="credit-cards-form-bank-account-id"
               value={bankAccountId}
               onChange={(e) => setBankAccountId(e.target.value)}
               required
@@ -261,6 +272,7 @@ function CardFormModal({
               </label>
               <input
                 type="text"
+                data-testid="credit-cards-form-card-name"
                 value={cardName}
                 onChange={(e) => setCardName(e.target.value)}
                 required
@@ -273,6 +285,7 @@ function CardFormModal({
               </label>
               <input
                 type="text"
+                data-testid="credit-cards-form-last-four-digits"
                 value={lastFour}
                 onChange={(e) => setLastFour(e.target.value)}
                 maxLength={4}
@@ -286,6 +299,7 @@ function CardFormModal({
                 סוג
               </label>
               <select
+                data-testid="credit-cards-form-card-type"
                 value={cardType}
                 onChange={(e) => setCardType(e.target.value as CreditCardType)}
                 className={INPUT_CLASS}
@@ -312,6 +326,7 @@ function CardFormModal({
               </label>
               <input
                 type="number"
+                data-testid="credit-cards-form-credit-limit"
                 value={creditLimit}
                 onChange={(e) => setCreditLimit(e.target.value)}
                 min="0"
@@ -327,6 +342,7 @@ function CardFormModal({
               </label>
               <input
                 type="number"
+                data-testid="credit-cards-form-billing-day"
                 value={billingDay}
                 onChange={(e) => setBillingDay(e.target.value)}
                 min="1"
@@ -342,6 +358,7 @@ function CardFormModal({
               </label>
               <input
                 type="number"
+                data-testid="credit-cards-form-closing-day"
                 value={closingDay}
                 onChange={(e) => setClosingDay(e.target.value)}
                 min="1"
@@ -358,6 +375,7 @@ function CardFormModal({
               הערות
             </label>
             <textarea
+              data-testid="credit-cards-form-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
@@ -368,6 +386,7 @@ function CardFormModal({
           {error && (
             <div
               role="alert"
+              data-testid="credit-cards-form-error"
               className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
             >
               {error}
@@ -375,10 +394,18 @@ function CardFormModal({
           )}
 
           <div className="flex items-center justify-end gap-2 pt-2">
-            <GhostButton onClick={onClose} disabled={submitting}>
+            <GhostButton
+              onClick={onClose}
+              disabled={submitting}
+              testId="credit-cards-form-cancel"
+            >
               ביטול
             </GhostButton>
-            <PrimaryButton type="submit" disabled={submitting}>
+            <PrimaryButton
+              type="submit"
+              disabled={submitting}
+              testId="credit-cards-form-submit"
+            >
               {submitting ? 'שומר...' : 'שמור'}
             </PrimaryButton>
           </div>
@@ -421,38 +448,45 @@ function ToggleModal({
 
   return (
     <Modal onClose={onClose} size="md">
-      <h3 className="text-lg font-bold text-gray-900">
-        {activating ? 'הפעלת כרטיס' : 'השבתת כרטיס'}
-      </h3>
-      <p className="mt-2 text-sm text-gray-600">
-        {activating
-          ? `להפעיל מחדש את ${card.card_name}?`
-          : `להשבית את ${card.card_name}?`}
-      </p>
-      {error && (
-        <div
-          role="alert"
-          className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
-        >
-          {error}
+      <div data-testid="credit-cards-toggle-modal">
+        <h3 className="text-lg font-bold text-gray-900">
+          {activating ? 'הפעלת כרטיס' : 'השבתת כרטיס'}
+        </h3>
+        <p className="mt-2 text-sm text-gray-600">
+          {activating
+            ? `להפעיל מחדש את ${card.card_name}?`
+            : `להשבית את ${card.card_name}?`}
+        </p>
+        {error && (
+          <div
+            role="alert"
+            className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
+          >
+            {error}
+          </div>
+        )}
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="credit-cards-toggle-cancel"
+          >
+            ביטול
+          </GhostButton>
+          <button
+            type="button"
+            data-testid="credit-cards-toggle-confirm"
+            onClick={handleConfirm}
+            disabled={submitting}
+            className={`px-4 py-2 rounded-md text-white font-bold text-sm transition-colors disabled:opacity-60 ${
+              activating
+                ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-red-600 hover:bg-red-700'
+            }`}
+          >
+            {submitting ? '...' : activating ? 'הפעל' : 'השבת'}
+          </button>
         </div>
-      )}
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <GhostButton onClick={onClose} disabled={submitting}>
-          ביטול
-        </GhostButton>
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={submitting}
-          className={`px-4 py-2 rounded-md text-white font-bold text-sm transition-colors disabled:opacity-60 ${
-            activating
-              ? 'bg-green-600 hover:bg-green-700'
-              : 'bg-red-600 hover:bg-red-700'
-          }`}
-        >
-          {submitting ? '...' : activating ? 'הפעל' : 'השבת'}
-        </button>
       </div>
     </Modal>
   );
@@ -470,6 +504,9 @@ function CardItem({
   const active = card.is_active === 1;
   return (
     <div
+      data-testid="credit-cards-row"
+      data-card-id={card.id}
+      data-credit-cards-active={active ? '1' : '0'}
       className={`bg-white rounded-xl border border-gray-200 shadow-sm p-5 ${
         active ? '' : 'opacity-60'
       }`}
@@ -483,13 +520,17 @@ function CardItem({
               {CARD_TYPE_LABELS[card.card_type]}
             </span>
             <span
+              data-testid="credit-cards-row-last-four"
               className="text-sm font-medium text-gray-700"
               dir="ltr"
             >
               ···· {card.last_four_digits}
             </span>
           </div>
-          <h3 className="font-bold text-gray-900 mt-1 truncate">
+          <h3
+            data-testid="credit-cards-row-card-name"
+            className="font-bold text-gray-900 mt-1 truncate"
+          >
             {card.card_name}
           </h3>
           <p className="text-xs text-gray-500 mt-0.5">
@@ -511,7 +552,11 @@ function CardItem({
         </div>
         <div className="flex justify-between">
           <dt className="text-gray-600">יתרה נוכחית:</dt>
-          <dd className="font-medium text-gray-900" dir="ltr">
+          <dd
+            data-testid="credit-cards-row-balance"
+            className="font-medium text-gray-900"
+            dir="ltr"
+          >
             {formatILS(card.current_balance)}
           </dd>
         </div>
@@ -526,9 +571,12 @@ function CardItem({
       </dl>
 
       <div className="mt-3 flex items-center justify-end gap-1">
-        <GhostButton onClick={onEdit}>עריכה</GhostButton>
+        <GhostButton onClick={onEdit} testId="credit-cards-row-edit">
+          עריכה
+        </GhostButton>
         <button
           type="button"
+          data-testid="credit-cards-row-toggle"
           onClick={onToggle}
           className={`px-3 py-2 rounded-md text-sm transition-colors ${
             active
@@ -571,7 +619,10 @@ export function CreditCardsManager({
       </header>
 
       <div>
-        <PrimaryButton onClick={() => setModal({ kind: 'add' })}>
+        <PrimaryButton
+          onClick={() => setModal({ kind: 'add' })}
+          testId="credit-cards-add-button"
+        >
           + הוסף כרטיס
         </PrimaryButton>
       </div>
@@ -590,11 +641,17 @@ export function CreditCardsManager({
       )}
 
       {cards.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+        <div
+          data-testid="credit-cards-empty"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center"
+        >
           <p className="text-gray-600">אין כרטיסים עדיין.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div
+          data-testid="credit-cards-list"
+          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
           {cards.map((c) => (
             <CardItem
               key={c.id}

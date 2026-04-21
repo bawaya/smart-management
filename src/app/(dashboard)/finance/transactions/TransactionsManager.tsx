@@ -196,15 +196,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -218,14 +221,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -387,7 +393,11 @@ function TransactionFormModal({
       <h3 className="text-lg font-bold text-gray-900 mb-4">
         {editing ? 'עריכת תנועה' : 'רישום תנועה'}
       </h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        data-testid="transactions-form"
+        className="space-y-4"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -395,6 +405,7 @@ function TransactionFormModal({
             </label>
             <input
               type="date"
+              data-testid="transactions-form-transaction-date"
               value={transactionDate}
               onChange={(e) => setTransactionDate(e.target.value)}
               required
@@ -407,6 +418,7 @@ function TransactionFormModal({
               סוג <span className="text-red-500">*</span>
             </label>
             <select
+              data-testid="transactions-form-transaction-type"
               value={transactionType}
               onChange={(e) =>
                 handleTypeChange(e.target.value as TransactionType)
@@ -426,6 +438,7 @@ function TransactionFormModal({
             </label>
             <input
               type="number"
+              data-testid="transactions-form-amount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
@@ -435,7 +448,7 @@ function TransactionFormModal({
               className={INPUT_CLASS}
             />
           </div>
-          <div>
+          <div data-testid="transactions-form-direction">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               כיוון
             </label>
@@ -472,6 +485,7 @@ function TransactionFormModal({
               חשבון בנק
             </label>
             <select
+              data-testid="transactions-form-bank-account-id"
               value={bankAccountId}
               onChange={(e) => setBankAccountId(e.target.value)}
               className={INPUT_CLASS}
@@ -489,6 +503,7 @@ function TransactionFormModal({
               כרטיס אשראי
             </label>
             <select
+              data-testid="transactions-form-credit-card-id"
               value={creditCardId}
               onChange={(e) => setCreditCardId(e.target.value)}
               className={INPUT_CLASS}
@@ -507,6 +522,7 @@ function TransactionFormModal({
             </label>
             <input
               type="text"
+              data-testid="transactions-form-counterparty"
               value={counterparty}
               onChange={(e) => setCounterparty(e.target.value)}
               className={INPUT_CLASS}
@@ -517,6 +533,7 @@ function TransactionFormModal({
               קטגוריה
             </label>
             <select
+              data-testid="transactions-form-category"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className={INPUT_CLASS}
@@ -535,6 +552,7 @@ function TransactionFormModal({
             </label>
             <input
               type="text"
+              data-testid="transactions-form-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className={INPUT_CLASS}
@@ -546,6 +564,7 @@ function TransactionFormModal({
             </label>
             <input
               type="text"
+              data-testid="transactions-form-reference-number"
               value={referenceNumber}
               onChange={(e) => setReferenceNumber(e.target.value)}
               dir="ltr"
@@ -559,6 +578,7 @@ function TransactionFormModal({
             הערות
           </label>
           <textarea
+            data-testid="transactions-form-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
@@ -569,6 +589,7 @@ function TransactionFormModal({
         {error && (
           <div
             role="alert"
+            data-testid="transactions-form-error"
             className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
           >
             {error}
@@ -576,10 +597,18 @@ function TransactionFormModal({
         )}
 
         <div className="flex items-center justify-end gap-2 pt-2">
-          <GhostButton onClick={onClose} disabled={submitting}>
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="transactions-form-cancel"
+          >
             ביטול
           </GhostButton>
-          <PrimaryButton type="submit" disabled={submitting}>
+          <PrimaryButton
+            type="submit"
+            disabled={submitting}
+            testId="transactions-form-submit"
+          >
             {submitting ? 'שומר...' : 'שמור'}
           </PrimaryButton>
         </div>
@@ -708,34 +737,41 @@ function DeleteModal({
 
   return (
     <Modal onClose={onClose} size="md">
-      <h3 className="text-lg font-bold text-gray-900">מחיקת תנועה</h3>
-      <p className="mt-2 text-sm text-gray-600">
-        למחוק את התנועה {TYPE_LABELS[transaction.transaction_type]} מתאריך{' '}
-        <span dir="ltr">{formatDateIL(transaction.transaction_date)}</span> על
-        סך{' '}
-        <span dir="ltr">{formatILS(transaction.amount)}</span>? פעולה זו אינה
-        ניתנת לביטול.
-      </p>
-      {error && (
-        <div
-          role="alert"
-          className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
-        >
-          {error}
+      <div data-testid="transactions-delete-modal">
+        <h3 className="text-lg font-bold text-gray-900">מחיקת תנועה</h3>
+        <p className="mt-2 text-sm text-gray-600">
+          למחוק את התנועה {TYPE_LABELS[transaction.transaction_type]} מתאריך{' '}
+          <span dir="ltr">{formatDateIL(transaction.transaction_date)}</span>{' '}
+          על סך{' '}
+          <span dir="ltr">{formatILS(transaction.amount)}</span>? פעולה זו אינה
+          ניתנת לביטול.
+        </p>
+        {error && (
+          <div
+            role="alert"
+            className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
+          >
+            {error}
+          </div>
+        )}
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="transactions-delete-cancel"
+          >
+            ביטול
+          </GhostButton>
+          <button
+            type="button"
+            data-testid="transactions-delete-confirm"
+            onClick={handleConfirm}
+            disabled={submitting}
+            className="px-4 py-2 rounded-md bg-red-600 text-white font-bold text-sm hover:bg-red-700 transition-colors disabled:opacity-60"
+          >
+            {submitting ? 'מוחק...' : 'מחק'}
+          </button>
         </div>
-      )}
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <GhostButton onClick={onClose} disabled={submitting}>
-          ביטול
-        </GhostButton>
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={submitting}
-          className="px-4 py-2 rounded-md bg-red-600 text-white font-bold text-sm hover:bg-red-700 transition-colors disabled:opacity-60"
-        >
-          {submitting ? 'מוחק...' : 'מחק'}
-        </button>
       </div>
     </Modal>
   );
@@ -753,20 +789,31 @@ function TransactionCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+    <div
+      data-testid="transactions-row"
+      data-transaction-id={transaction.id}
+      className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+    >
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-bold text-gray-900">
+            <p data-testid="transactions-row-type" className="font-bold text-gray-900">
               {TYPE_LABELS[transaction.transaction_type]}
             </p>
-            <DirectionBadge direction={transaction.direction} />
+            <div data-testid="transactions-row-direction">
+              <DirectionBadge direction={transaction.direction} />
+            </div>
           </div>
-          <p className="text-xs text-gray-500 mt-0.5" dir="ltr">
+          <p
+            data-testid="transactions-row-date"
+            className="text-xs text-gray-500 mt-0.5"
+            dir="ltr"
+          >
             {formatDateIL(transaction.transaction_date)}
           </p>
         </div>
         <p
+          data-testid="transactions-row-amount"
           className={`font-bold ${
             transaction.direction === 'in' ? 'text-green-700' : 'text-red-700'
           }`}
@@ -784,10 +831,15 @@ function TransactionCard({
         {accountOrCardLabel(transaction)}
       </p>
       <div className="mt-3 flex items-center justify-end gap-1 flex-wrap">
-        <GhostButton onClick={onView}>צפייה</GhostButton>
-        <GhostButton onClick={onEdit}>עריכה</GhostButton>
+        <GhostButton onClick={onView} testId="transactions-row-view">
+          צפייה
+        </GhostButton>
+        <GhostButton onClick={onEdit} testId="transactions-row-edit">
+          עריכה
+        </GhostButton>
         <button
           type="button"
+          data-testid="transactions-row-delete"
           onClick={onDelete}
           className="px-3 py-2 rounded-md text-sm text-red-600 hover:bg-red-50"
         >
@@ -895,7 +947,10 @@ export function TransactionsManager({
       </div>
 
       <div className="flex flex-col md:flex-row gap-2 md:items-end flex-wrap">
-        <PrimaryButton onClick={() => setModal({ kind: 'add' })}>
+        <PrimaryButton
+          onClick={() => setModal({ kind: 'add' })}
+          testId="transactions-add-button"
+        >
           + רישום תנועה
         </PrimaryButton>
         <div className="flex items-end gap-2">
@@ -982,7 +1037,10 @@ export function TransactionsManager({
       )}
 
       {transactions.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+        <div
+          data-testid="transactions-empty"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center"
+        >
           <p className="text-gray-600">אין תנועות כספיות.</p>
         </div>
       ) : filtered.length === 0 ? (
@@ -993,7 +1051,10 @@ export function TransactionsManager({
         </div>
       ) : (
         <>
-          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <div
+            data-testid="transactions-list"
+            className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto"
+          >
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-right">
                 <tr>
@@ -1009,17 +1070,29 @@ export function TransactionsManager({
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.map((t) => (
-                  <tr key={t.id}>
-                    <td className="px-4 py-3" dir="ltr">
+                  <tr
+                    key={t.id}
+                    data-testid="transactions-row"
+                    data-transaction-id={t.id}
+                  >
+                    <td
+                      data-testid="transactions-row-date"
+                      className="px-4 py-3"
+                      dir="ltr"
+                    >
                       {formatDateIL(t.transaction_date)}
                     </td>
-                    <td className="px-4 py-3 text-gray-900">
+                    <td
+                      data-testid="transactions-row-type"
+                      className="px-4 py-3 text-gray-900"
+                    >
                       {TYPE_LABELS[t.transaction_type]}
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-testid="transactions-row-direction" className="px-4 py-3">
                       <DirectionBadge direction={t.direction} />
                     </td>
                     <td
+                      data-testid="transactions-row-amount"
                       className={`px-4 py-3 font-medium ${
                         t.direction === 'in' ? 'text-green-700' : 'text-red-700'
                       }`}
@@ -1042,6 +1115,7 @@ export function TransactionsManager({
                           onClick={() =>
                             setModal({ kind: 'view', transaction: t })
                           }
+                          testId="transactions-row-view"
                         >
                           צפייה
                         </GhostButton>
@@ -1049,11 +1123,13 @@ export function TransactionsManager({
                           onClick={() =>
                             setModal({ kind: 'edit', transaction: t })
                           }
+                          testId="transactions-row-edit"
                         >
                           עריכה
                         </GhostButton>
                         <button
                           type="button"
+                          data-testid="transactions-row-delete"
                           onClick={() =>
                             setModal({ kind: 'delete', transaction: t })
                           }
@@ -1069,7 +1145,7 @@ export function TransactionsManager({
             </table>
           </div>
 
-          <div className="md:hidden space-y-3">
+          <div data-testid="transactions-list" className="md:hidden space-y-3">
             {filtered.map((t) => (
               <TransactionCard
                 key={t.id}

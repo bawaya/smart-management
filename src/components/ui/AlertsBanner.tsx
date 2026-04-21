@@ -28,7 +28,10 @@ function AlertRow({
   textClass: string;
 }) {
   return (
-    <li className={`flex items-start gap-2 text-sm ${textClass}`}>
+    <li
+      data-testid="alert-item"
+      className={`flex items-start gap-2 text-sm ${textClass}`}
+    >
       <span aria-hidden className="shrink-0 mt-0.5">
         {icon}
       </span>
@@ -49,7 +52,10 @@ export function AlertsBanner({ alerts }: AlertsBannerProps) {
   const shownWarnings = shown.filter((a) => a.severity === 'warning');
 
   return (
-    <div className="relative bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
+    <div
+      data-testid="alerts-banner"
+      className="relative bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3"
+    >
       <button
         type="button"
         onClick={() => setDismissed(true)}

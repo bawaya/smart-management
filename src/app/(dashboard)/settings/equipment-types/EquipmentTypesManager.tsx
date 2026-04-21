@@ -33,15 +33,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: React.ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -55,14 +58,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -298,13 +304,23 @@ export function EquipmentTypesManager({
         <header className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-900">סוגים</h2>
           {!adding && (
-            <PrimaryButton onClick={openAdd}>+ הוסף סוג חדש</PrimaryButton>
+            <PrimaryButton
+              onClick={openAdd}
+              testId="equipment-types-add-button"
+            >
+              + הוסף סוג חדש
+            </PrimaryButton>
           )}
         </header>
 
         {typesMessage && (
           <div
             role={typesMessage.kind === 'error' ? 'alert' : 'status'}
+            data-testid={
+              typesMessage.kind === 'error'
+                ? 'equipment-types-form-error'
+                : 'toast-success'
+            }
             className={`mb-4 p-3 rounded-lg text-sm text-center border ${
               typesMessage.kind === 'success'
                 ? 'bg-green-50 border-green-200 text-green-700'
@@ -316,9 +332,13 @@ export function EquipmentTypesManager({
         )}
 
         {adding && (
-          <div className="flex items-center gap-2 p-3 rounded-lg border border-[#f59e0b]/40 bg-amber-50/40 mb-3">
+          <div
+            data-testid="equipment-types-form"
+            className="flex items-center gap-2 p-3 rounded-lg border border-[#f59e0b]/40 bg-amber-50/40 mb-3"
+          >
             <input
               type="text"
+              data-testid="equipment-types-form-name"
               value={newTypeName}
               onChange={(e) => setNewTypeName(e.target.value)}
               onKeyDown={handleAddKeyDown}
@@ -329,30 +349,44 @@ export function EquipmentTypesManager({
             <PrimaryButton
               onClick={saveAdd}
               disabled={addSubmitting || newTypeName.trim().length === 0}
+              testId="equipment-types-form-submit"
             >
               {addSubmitting ? '...' : 'שמור'}
             </PrimaryButton>
-            <GhostButton onClick={cancelAdd} disabled={addSubmitting}>
+            <GhostButton
+              onClick={cancelAdd}
+              disabled={addSubmitting}
+              testId="equipment-types-form-cancel"
+            >
               ביטול
             </GhostButton>
           </div>
         )}
 
         {types.length === 0 && !adding ? (
-          <p className="text-sm text-gray-500 text-center py-6">
+          <p
+            data-testid="equipment-types-empty"
+            className="text-sm text-gray-500 text-center py-6"
+          >
             אין סוגי ציוד עדיין
           </p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul
+            data-testid="equipment-types-list"
+            className="divide-y divide-gray-100"
+          >
             {types.map((type) => (
               <li
                 key={type.id}
+                data-testid="equipment-types-row"
+                data-type-id={type.id}
                 className="flex items-center gap-2 py-3 first:pt-0 last:pb-0"
               >
                 {editingId === type.id ? (
                   <>
                     <input
                       type="text"
+                      data-testid="equipment-types-form-name"
                       value={editingName}
                       onChange={(e) => setEditingName(e.target.value)}
                       onKeyDown={handleEditKeyDown}
@@ -364,23 +398,35 @@ export function EquipmentTypesManager({
                       disabled={
                         editSubmitting || editingName.trim().length === 0
                       }
+                      testId="equipment-types-form-submit"
                     >
                       {editSubmitting ? '...' : 'שמור'}
                     </PrimaryButton>
-                    <GhostButton onClick={cancelEdit} disabled={editSubmitting}>
+                    <GhostButton
+                      onClick={cancelEdit}
+                      disabled={editSubmitting}
+                      testId="equipment-types-form-cancel"
+                    >
                       ביטול
                     </GhostButton>
                   </>
                 ) : (
                   <>
-                    <span className="flex-1 text-sm text-gray-900 truncate">
+                    <span
+                      data-testid="equipment-types-row-name"
+                      className="flex-1 text-sm text-gray-900 truncate"
+                    >
                       {type.name}
                     </span>
-                    <GhostButton onClick={() => startEdit(type)}>
+                    <GhostButton
+                      onClick={() => startEdit(type)}
+                      testId="equipment-types-row-edit"
+                    >
                       עריכה
                     </GhostButton>
                     <button
                       type="button"
+                      data-testid="equipment-types-row-delete"
                       onClick={() => setConfirmDeleteId(type.id)}
                       className="px-3 py-2 rounded-md text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
@@ -396,7 +442,10 @@ export function EquipmentTypesManager({
 
       {confirmDeleteId && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full text-right">
+          <div
+            data-testid="equipment-types-delete-modal"
+            className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full text-right"
+          >
             <h3 className="text-lg font-bold text-gray-900">אישור מחיקה</h3>
             <p className="mt-2 text-sm text-gray-600">
               האם אתה בטוח? פעולה זו לא ניתנת לביטול
@@ -405,11 +454,13 @@ export function EquipmentTypesManager({
               <GhostButton
                 onClick={() => setConfirmDeleteId(null)}
                 disabled={deleteSubmitting}
+                testId="equipment-types-delete-cancel"
               >
                 ביטול
               </GhostButton>
               <button
                 type="button"
+                data-testid="equipment-types-delete-confirm"
                 onClick={confirmDelete}
                 disabled={deleteSubmitting}
                 className="px-4 py-2 rounded-md bg-red-600 text-white font-bold text-sm hover:bg-red-700 transition-colors disabled:opacity-60"

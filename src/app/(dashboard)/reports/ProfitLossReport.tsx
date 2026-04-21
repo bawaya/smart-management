@@ -181,7 +181,11 @@ export function ProfitLossReport({ data, company }: ProfitLossReportProps) {
             <h1 className="text-2xl font-bold text-gray-900">
               דוח רווח והפסד
             </h1>
-            <p className="mt-2 text-sm text-gray-700" dir="ltr">
+            <p
+              data-testid="report-pl-period"
+              className="mt-2 text-sm text-gray-700"
+              dir="ltr"
+            >
               {periodLabel(data.year, data.month)}
             </p>
           </div>
@@ -200,7 +204,11 @@ export function ProfitLossReport({ data, company }: ProfitLossReportProps) {
             ))}
             <div className="flex justify-between border-t border-green-200 pt-2 mt-2">
               <dt className="text-green-900 font-bold">סה״כ הכנסות:</dt>
-              <dd className="text-green-900 font-bold" dir="ltr">
+              <dd
+                data-testid="report-pl-total-income"
+                className="text-green-900 font-bold"
+                dir="ltr"
+              >
                 {formatILS(data.totalIncome)}
               </dd>
             </div>
@@ -220,7 +228,11 @@ export function ProfitLossReport({ data, company }: ProfitLossReportProps) {
             ))}
             <div className="flex justify-between border-t border-red-200 pt-2 mt-2">
               <dt className="text-red-900 font-bold">סה״כ הוצאות:</dt>
-              <dd className="text-red-900 font-bold" dir="ltr">
+              <dd
+                data-testid="report-pl-total-expenses"
+                className="text-red-900 font-bold"
+                dir="ltr"
+              >
                 {formatILS(data.totalExpenses)}
               </dd>
             </div>
@@ -233,6 +245,7 @@ export function ProfitLossReport({ data, company }: ProfitLossReportProps) {
             <div className="flex justify-between">
               <dt className="text-gray-800 font-semibold">רווח גולמי:</dt>
               <dd
+                data-testid="report-pl-gross-profit"
                 className={`font-bold text-base ${
                   data.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'
                 }`}
@@ -244,6 +257,7 @@ export function ProfitLossReport({ data, company }: ProfitLossReportProps) {
             <div className="flex justify-between">
               <dt className="text-gray-700">שולי רווח:</dt>
               <dd
+                data-testid="report-pl-margin-percent"
                 className={`font-medium ${
                   data.marginPct >= 0 ? 'text-green-700' : 'text-red-700'
                 }`}
@@ -263,6 +277,7 @@ export function ProfitLossReport({ data, company }: ProfitLossReportProps) {
             <div className="flex justify-between border-t border-amber-200 pt-2 mt-2">
               <dt className="text-gray-900 font-bold">רווח נקי:</dt>
               <dd
+                data-testid="report-pl-net-profit"
                 className={`font-bold text-lg ${
                   data.netProfit >= 0 ? 'text-green-700' : 'text-red-700'
                 }`}
@@ -282,7 +297,7 @@ export function ProfitLossReport({ data, company }: ProfitLossReportProps) {
             <dl className="space-y-1 text-sm">
               <div className="flex justify-between">
                 <dt className="text-gray-700">שינוי בהכנסות:</dt>
-                <dd>
+                <dd data-testid="report-pl-income-delta">
                   <Delta
                     current={data.totalIncome}
                     prev={data.previous.totalIncome}
@@ -292,7 +307,7 @@ export function ProfitLossReport({ data, company }: ProfitLossReportProps) {
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-700">שינוי בהוצאות:</dt>
-                <dd>
+                <dd data-testid="report-pl-expenses-delta">
                   <Delta
                     current={data.totalExpenses}
                     prev={data.previous.totalExpenses}
@@ -302,7 +317,7 @@ export function ProfitLossReport({ data, company }: ProfitLossReportProps) {
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-700">שינוי ברווח:</dt>
-                <dd>
+                <dd data-testid="report-pl-profit-delta">
                   <Delta
                     current={data.grossProfit}
                     prev={data.previous.grossProfit}

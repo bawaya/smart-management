@@ -157,15 +157,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -179,14 +182,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -307,12 +313,13 @@ function GenerateInvoiceModal({
         הפקת חשבונית חודשית
       </h3>
 
-      <div className="space-y-3">
+      <div data-testid="invoices-generate-form" className="space-y-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             לקוח <span className="text-red-500">*</span>
           </label>
           <select
+            data-testid="invoices-generate-client-id"
             value={clientId}
             onChange={(e) => {
               setClientId(e.target.value);
@@ -335,6 +342,7 @@ function GenerateInvoiceModal({
             </label>
             <input
               type="date"
+              data-testid="invoices-generate-period-start"
               value={periodStart}
               onChange={(e) => {
                 setPeriodStart(e.target.value);
@@ -350,6 +358,7 @@ function GenerateInvoiceModal({
             </label>
             <input
               type="date"
+              data-testid="invoices-generate-period-end"
               value={periodEnd}
               onChange={(e) => {
                 setPeriodEnd(e.target.value);
@@ -362,7 +371,11 @@ function GenerateInvoiceModal({
         </div>
 
         <div className="flex justify-end">
-          <PrimaryButton onClick={handleSearch} disabled={searching}>
+          <PrimaryButton
+            onClick={handleSearch}
+            disabled={searching}
+            testId="invoices-generate-search"
+          >
             {searching ? 'מחפש...' : 'חפש רישומים'}
           </PrimaryButton>
         </div>
@@ -428,6 +441,7 @@ function GenerateInvoiceModal({
         {error && (
           <div
             role="alert"
+            data-testid="invoices-generate-error"
             className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
           >
             {error}
@@ -435,11 +449,19 @@ function GenerateInvoiceModal({
         )}
 
         <div className="flex items-center justify-end gap-2 pt-2">
-          <GhostButton onClick={onClose} disabled={submitting || searching}>
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting || searching}
+            testId="invoices-generate-cancel"
+          >
             ביטול
           </GhostButton>
           {hasRecords && (
-            <PrimaryButton onClick={handleGenerate} disabled={submitting}>
+            <PrimaryButton
+              onClick={handleGenerate}
+              disabled={submitting}
+              testId="invoices-generate-submit"
+            >
               {submitting ? 'מפיק...' : 'הפק חשבונית'}
             </PrimaryButton>
           )}
@@ -576,31 +598,38 @@ function SendModal({
 
   return (
     <Modal onClose={onClose} size="md">
-      <h3 className="text-lg font-bold text-gray-900">סימון כנשלחה</h3>
-      <p className="mt-2 text-sm text-gray-600">
-        לסמן את חשבונית <span dir="ltr">{invoice.invoice_number}</span>{' '}
-        כנשלחה ללקוח?
-      </p>
-      {error && (
-        <div
-          role="alert"
-          className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
-        >
-          {error}
+      <div data-testid="invoices-send-modal">
+        <h3 className="text-lg font-bold text-gray-900">סימון כנשלחה</h3>
+        <p className="mt-2 text-sm text-gray-600">
+          לסמן את חשבונית <span dir="ltr">{invoice.invoice_number}</span>{' '}
+          כנשלחה ללקוח?
+        </p>
+        {error && (
+          <div
+            role="alert"
+            className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
+          >
+            {error}
+          </div>
+        )}
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="invoices-send-cancel"
+          >
+            ביטול
+          </GhostButton>
+          <button
+            type="button"
+            data-testid="invoices-send-confirm"
+            onClick={handleConfirm}
+            disabled={submitting}
+            className="px-4 py-2 rounded-md bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors disabled:opacity-60"
+          >
+            {submitting ? '...' : 'סמן כנשלחה'}
+          </button>
         </div>
-      )}
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <GhostButton onClick={onClose} disabled={submitting}>
-          ביטול
-        </GhostButton>
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={submitting}
-          className="px-4 py-2 rounded-md bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors disabled:opacity-60"
-        >
-          {submitting ? '...' : 'סמן כנשלחה'}
-        </button>
       </div>
     </Modal>
   );
@@ -667,13 +696,18 @@ function PaymentModal({
         </span>
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+      <form
+        onSubmit={handleSubmit}
+        data-testid="invoices-payment-modal"
+        className="mt-4 space-y-3"
+      >
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             סכום ששולם <span className="text-red-500">*</span>
           </label>
           <input
             type="number"
+            data-testid="invoices-payment-amount"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             required
@@ -689,6 +723,7 @@ function PaymentModal({
           </label>
           <input
             type="date"
+            data-testid="invoices-payment-date"
             value={paymentDate}
             onChange={(e) => setPaymentDate(e.target.value)}
             required
@@ -700,6 +735,7 @@ function PaymentModal({
         {error && (
           <div
             role="alert"
+            data-testid="invoices-payment-error"
             className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
           >
             {error}
@@ -707,10 +743,18 @@ function PaymentModal({
         )}
 
         <div className="flex items-center justify-end gap-2 pt-2">
-          <GhostButton onClick={onClose} disabled={submitting}>
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="invoices-payment-cancel"
+          >
             ביטול
           </GhostButton>
-          <PrimaryButton type="submit" disabled={submitting}>
+          <PrimaryButton
+            type="submit"
+            disabled={submitting}
+            testId="invoices-payment-submit"
+          >
             {submitting ? 'רושם...' : 'רשום תשלום'}
           </PrimaryButton>
         </div>
@@ -755,31 +799,38 @@ function CancelModal({
 
   return (
     <Modal onClose={onClose} size="md">
-      <h3 className="text-lg font-bold text-gray-900">ביטול חשבונית</h3>
-      <p className="mt-2 text-sm text-gray-600">
-        לבטל את חשבונית <span dir="ltr">{invoice.invoice_number}</span>?
-        הרישומים המשויכים יחזרו לסטטוס מאושר.
-      </p>
-      {error && (
-        <div
-          role="alert"
-          className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
-        >
-          {error}
+      <div data-testid="invoices-cancel-modal">
+        <h3 className="text-lg font-bold text-gray-900">ביטול חשבונית</h3>
+        <p className="mt-2 text-sm text-gray-600">
+          לבטל את חשבונית <span dir="ltr">{invoice.invoice_number}</span>?
+          הרישומים המשויכים יחזרו לסטטוס מאושר.
+        </p>
+        {error && (
+          <div
+            role="alert"
+            className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
+          >
+            {error}
+          </div>
+        )}
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="invoices-cancel-cancel"
+          >
+            ביטול
+          </GhostButton>
+          <button
+            type="button"
+            data-testid="invoices-cancel-confirm"
+            onClick={handleConfirm}
+            disabled={submitting}
+            className="px-4 py-2 rounded-md bg-red-600 text-white font-bold text-sm hover:bg-red-700 transition-colors disabled:opacity-60"
+          >
+            {submitting ? 'מבטל...' : 'בטל חשבונית'}
+          </button>
         </div>
-      )}
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <GhostButton onClick={onClose} disabled={submitting}>
-          ביטול
-        </GhostButton>
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={submitting}
-          className="px-4 py-2 rounded-md bg-red-600 text-white font-bold text-sm hover:bg-red-700 transition-colors disabled:opacity-60"
-        >
-          {submitting ? 'מבטל...' : 'בטל חשבונית'}
-        </button>
       </div>
     </Modal>
   );
@@ -805,32 +856,57 @@ function InvoiceCard({
     invoice.status === 'draft' || invoice.status === 'sent';
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+    <div
+      data-testid="invoices-row"
+      data-invoice-id={invoice.id}
+      data-invoice-status={invoice.status}
+      className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+    >
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-bold text-gray-900" dir="ltr">
+          <p
+            data-testid="invoices-row-number"
+            className="font-bold text-gray-900"
+            dir="ltr"
+          >
             {invoice.invoice_number}
           </p>
-          <p className="text-sm text-gray-600 truncate">
+          <p
+            data-testid="invoices-row-client"
+            className="text-sm text-gray-600 truncate"
+          >
             {invoice.client_name}
           </p>
           <p className="text-xs text-gray-500 mt-0.5" dir="ltr">
             {formatPeriod(invoice.period_start, invoice.period_end)}
           </p>
         </div>
-        <StatusBadge status={invoice.status} />
+        <div data-testid="invoices-row-status">
+          <StatusBadge status={invoice.status} />
+        </div>
       </header>
 
-      <p className="mt-2 text-lg font-bold text-gray-900" dir="ltr">
+      <p
+        data-testid="invoices-row-total"
+        className="mt-2 text-lg font-bold text-gray-900"
+        dir="ltr"
+      >
         {formatILS(invoice.total)}
       </p>
 
       <div className="mt-3 flex items-center justify-end gap-1 flex-wrap">
-        <GhostButton onClick={onView}>צפייה</GhostButton>
-        {canSend && <GhostButton onClick={onSend}>שליחה</GhostButton>}
+        <GhostButton onClick={onView} testId="invoices-row-view">
+          צפייה
+        </GhostButton>
+        {canSend && (
+          <GhostButton onClick={onSend} testId="invoices-row-send">
+            שליחה
+          </GhostButton>
+        )}
         {canPayment && (
           <button
             type="button"
+            data-testid="invoices-row-payment"
             onClick={onPayment}
             className="px-3 py-2 rounded-md text-sm text-green-700 hover:bg-green-50"
           >
@@ -840,6 +916,7 @@ function InvoiceCard({
         {canCancel && (
           <button
             type="button"
+            data-testid="invoices-row-cancel"
             onClick={onCancel}
             className="px-3 py-2 rounded-md text-sm text-red-600 hover:bg-red-50"
           >
@@ -931,7 +1008,10 @@ export function InvoicesManager({
       </div>
 
       <div className="flex flex-col md:flex-row gap-2 md:items-end flex-wrap">
-        <PrimaryButton onClick={() => setModal({ kind: 'generate' })}>
+        <PrimaryButton
+          onClick={() => setModal({ kind: 'generate' })}
+          testId="invoices-add-button"
+        >
           + הפק חשבונית חודשית
         </PrimaryButton>
         <div>
@@ -982,7 +1062,10 @@ export function InvoicesManager({
       )}
 
       {invoices.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+        <div
+          data-testid="invoices-empty"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center"
+        >
           <p className="text-gray-600">אין חשבוניות עדיין.</p>
         </div>
       ) : filtered.length === 0 ? (
@@ -993,7 +1076,10 @@ export function InvoicesManager({
         </div>
       ) : (
         <>
-          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <div
+            data-testid="invoices-list"
+            className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto"
+          >
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-right">
                 <tr>
@@ -1019,11 +1105,23 @@ export function InvoicesManager({
                   const canCancel =
                     inv.status === 'draft' || inv.status === 'sent';
                   return (
-                    <tr key={inv.id}>
-                      <td className="px-4 py-3 font-medium" dir="ltr">
+                    <tr
+                      key={inv.id}
+                      data-testid="invoices-row"
+                      data-invoice-id={inv.id}
+                      data-invoice-status={inv.status}
+                    >
+                      <td
+                        data-testid="invoices-row-number"
+                        className="px-4 py-3 font-medium"
+                        dir="ltr"
+                      >
                         {inv.invoice_number}
                       </td>
-                      <td className="px-4 py-3 text-gray-900">
+                      <td
+                        data-testid="invoices-row-client"
+                        className="px-4 py-3 text-gray-900"
+                      >
                         {inv.client_name}
                       </td>
                       <td className="px-4 py-3 text-gray-700" dir="ltr">
@@ -1035,10 +1133,14 @@ export function InvoicesManager({
                       <td className="px-4 py-3" dir="ltr">
                         {inv.total_worker_days}
                       </td>
-                      <td className="px-4 py-3 font-medium" dir="ltr">
+                      <td
+                        data-testid="invoices-row-total"
+                        className="px-4 py-3 font-medium"
+                        dir="ltr"
+                      >
                         {formatILS(inv.total)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-testid="invoices-row-status" className="px-4 py-3">
                         <StatusBadge status={inv.status} />
                       </td>
                       <td className="px-4 py-3">
@@ -1047,6 +1149,7 @@ export function InvoicesManager({
                             onClick={() =>
                               setModal({ kind: 'view', invoice: inv })
                             }
+                            testId="invoices-row-view"
                           >
                             צפייה
                           </GhostButton>
@@ -1055,6 +1158,7 @@ export function InvoicesManager({
                               onClick={() =>
                                 setModal({ kind: 'send', invoice: inv })
                               }
+                              testId="invoices-row-send"
                             >
                               שליחה
                             </GhostButton>
@@ -1062,6 +1166,7 @@ export function InvoicesManager({
                           {canPayment && (
                             <button
                               type="button"
+                              data-testid="invoices-row-payment"
                               onClick={() =>
                                 setModal({ kind: 'payment', invoice: inv })
                               }
@@ -1073,6 +1178,7 @@ export function InvoicesManager({
                           {canCancel && (
                             <button
                               type="button"
+                              data-testid="invoices-row-cancel"
                               onClick={() =>
                                 setModal({ kind: 'cancel', invoice: inv })
                               }
@@ -1090,7 +1196,7 @@ export function InvoicesManager({
             </table>
           </div>
 
-          <div className="md:hidden space-y-3">
+          <div data-testid="invoices-list" className="md:hidden space-y-3">
             {filtered.map((inv) => (
               <InvoiceCard
                 key={inv.id}

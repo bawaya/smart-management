@@ -119,15 +119,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -141,14 +144,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -267,7 +273,11 @@ function FuelFormModal({
       <h3 className="text-lg font-bold text-gray-900 mb-4">
         {editing ? 'עריכת תדלוק' : 'רישום תדלוק'}
       </h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        data-testid="fuel-form"
+        className="space-y-4"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -275,6 +285,7 @@ function FuelFormModal({
             </label>
             <input
               type="date"
+              data-testid="fuel-form-record-date"
               value={recordDate}
               onChange={(e) => setRecordDate(e.target.value)}
               required
@@ -287,6 +298,7 @@ function FuelFormModal({
               רכב <span className="text-red-500">*</span>
             </label>
             <select
+              data-testid="fuel-form-vehicle-id"
               value={vehicleId}
               onChange={(e) => setVehicleId(e.target.value)}
               required
@@ -306,6 +318,7 @@ function FuelFormModal({
             </label>
             <input
               type="number"
+              data-testid="fuel-form-liters"
               value={liters}
               onChange={(e) => setLiters(e.target.value)}
               required
@@ -321,6 +334,7 @@ function FuelFormModal({
             </label>
             <input
               type="number"
+              data-testid="fuel-form-price-per-liter"
               value={pricePerLiter}
               onChange={(e) => setPricePerLiter(e.target.value)}
               min="0"
@@ -335,6 +349,7 @@ function FuelFormModal({
             </label>
             <input
               type="text"
+              data-testid="fuel-form-total-cost"
               value={formatILS(totalCost)}
               readOnly
               dir="ltr"
@@ -347,6 +362,7 @@ function FuelFormModal({
             </label>
             <input
               type="number"
+              data-testid="fuel-form-odometer"
               value={odometerReading}
               onChange={(e) => setOdometerReading(e.target.value)}
               min="0"
@@ -361,6 +377,7 @@ function FuelFormModal({
             </label>
             <input
               type="text"
+              data-testid="fuel-form-station-name"
               value={stationName}
               onChange={(e) => setStationName(e.target.value)}
               className={INPUT_CLASS}
@@ -372,6 +389,7 @@ function FuelFormModal({
             </label>
             <input
               type="text"
+              data-testid="fuel-form-receipt-ref"
               value={receiptRef}
               onChange={(e) => setReceiptRef(e.target.value)}
               dir="ltr"
@@ -385,6 +403,7 @@ function FuelFormModal({
             הערות
           </label>
           <textarea
+            data-testid="fuel-form-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
@@ -395,6 +414,7 @@ function FuelFormModal({
         {error && (
           <div
             role="alert"
+            data-testid="fuel-form-error"
             className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
           >
             {error}
@@ -402,10 +422,18 @@ function FuelFormModal({
         )}
 
         <div className="flex items-center justify-end gap-2 pt-2">
-          <GhostButton onClick={onClose} disabled={submitting}>
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="fuel-form-cancel"
+          >
             ביטול
           </GhostButton>
-          <PrimaryButton type="submit" disabled={submitting}>
+          <PrimaryButton
+            type="submit"
+            disabled={submitting}
+            testId="fuel-form-submit"
+          >
             {submitting ? 'שומר...' : 'שמור'}
           </PrimaryButton>
         </div>
@@ -448,32 +476,39 @@ function DeleteModal({
 
   return (
     <Modal onClose={onClose} size="md">
-      <h3 className="text-lg font-bold text-gray-900">מחיקת רישום</h3>
-      <p className="mt-2 text-sm text-gray-600">
-        האם למחוק את רישום התדלוק של {record.vehicle_name} מתאריך{' '}
-        <span dir="ltr">{formatDateIL(record.record_date)}</span>? פעולה זו
-        אינה ניתנת לביטול.
-      </p>
-      {error && (
-        <div
-          role="alert"
-          className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
-        >
-          {error}
+      <div data-testid="fuel-delete-modal">
+        <h3 className="text-lg font-bold text-gray-900">מחיקת רישום</h3>
+        <p className="mt-2 text-sm text-gray-600">
+          האם למחוק את רישום התדלוק של {record.vehicle_name} מתאריך{' '}
+          <span dir="ltr">{formatDateIL(record.record_date)}</span>? פעולה זו
+          אינה ניתנת לביטול.
+        </p>
+        {error && (
+          <div
+            role="alert"
+            className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
+          >
+            {error}
+          </div>
+        )}
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="fuel-delete-cancel"
+          >
+            ביטול
+          </GhostButton>
+          <button
+            type="button"
+            data-testid="fuel-delete-confirm"
+            onClick={handleConfirm}
+            disabled={submitting}
+            className="px-4 py-2 rounded-md bg-red-600 text-white font-bold text-sm hover:bg-red-700 transition-colors disabled:opacity-60"
+          >
+            {submitting ? 'מוחק...' : 'מחק'}
+          </button>
         </div>
-      )}
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <GhostButton onClick={onClose} disabled={submitting}>
-          ביטול
-        </GhostButton>
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={submitting}
-          className="px-4 py-2 rounded-md bg-red-600 text-white font-bold text-sm hover:bg-red-700 transition-colors disabled:opacity-60"
-        >
-          {submitting ? 'מוחק...' : 'מחק'}
-        </button>
       </div>
     </Modal>
   );
@@ -489,13 +524,24 @@ function FuelCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+    <div
+      data-testid="fuel-row"
+      data-fuel-id={record.id}
+      className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+    >
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-bold text-gray-900" dir="ltr">
+          <p
+            data-testid="fuel-row-date"
+            className="font-bold text-gray-900"
+            dir="ltr"
+          >
             {formatDateIL(record.record_date)}
           </p>
-          <p className="text-sm text-gray-600 truncate">
+          <p
+            data-testid="fuel-row-vehicle"
+            className="text-sm text-gray-600 truncate"
+          >
             {record.vehicle_name}
             {' '}
             <span className="text-gray-400" dir="ltr">
@@ -503,14 +549,20 @@ function FuelCard({
             </span>
           </p>
         </div>
-        <span className="font-bold text-gray-900" dir="ltr">
+        <span
+          data-testid="fuel-row-total"
+          className="font-bold text-gray-900"
+          dir="ltr"
+        >
           {formatILS(record.total_cost)}
         </span>
       </header>
       <dl className="mt-2 space-y-0.5 text-sm">
         <div className="flex justify-between">
           <dt className="text-gray-600">ליטרים:</dt>
-          <dd dir="ltr">{formatLiters(record.liters)}</dd>
+          <dd data-testid="fuel-row-liters" dir="ltr">
+            {formatLiters(record.liters)}
+          </dd>
         </div>
         <div className="flex justify-between">
           <dt className="text-gray-600">מחיר/ליטר:</dt>
@@ -532,9 +584,12 @@ function FuelCard({
         )}
       </dl>
       <div className="mt-3 flex items-center justify-end gap-1">
-        <GhostButton onClick={onEdit}>עריכה</GhostButton>
+        <GhostButton onClick={onEdit} testId="fuel-row-edit">
+          עריכה
+        </GhostButton>
         <button
           type="button"
+          data-testid="fuel-row-delete"
           onClick={onDelete}
           className="px-3 py-2 rounded-md text-sm text-red-600 hover:bg-red-50"
         >
@@ -624,7 +679,10 @@ export function FuelManager({
       </div>
 
       <div className="flex flex-col md:flex-row gap-2 md:items-end flex-wrap">
-        <PrimaryButton onClick={() => setModal({ kind: 'add' })}>
+        <PrimaryButton
+          onClick={() => setModal({ kind: 'add' })}
+          testId="fuel-add-button"
+        >
           + רישום תדלוק
         </PrimaryButton>
         <div className="flex items-end gap-2">
@@ -680,7 +738,10 @@ export function FuelManager({
       )}
 
       {records.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+        <div
+          data-testid="fuel-empty"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center"
+        >
           <p className="text-gray-600">אין רישומי דלק עדיין.</p>
         </div>
       ) : filtered.length === 0 ? (
@@ -691,7 +752,10 @@ export function FuelManager({
         </div>
       ) : (
         <>
-          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <div
+            data-testid="fuel-list"
+            className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto"
+          >
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-right">
                 <tr>
@@ -711,17 +775,29 @@ export function FuelManager({
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.map((r) => (
-                  <tr key={r.id}>
-                    <td className="px-4 py-3" dir="ltr">
+                  <tr
+                    key={r.id}
+                    data-testid="fuel-row"
+                    data-fuel-id={r.id}
+                  >
+                    <td
+                      data-testid="fuel-row-date"
+                      className="px-4 py-3"
+                      dir="ltr"
+                    >
                       {formatDateIL(r.record_date)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-testid="fuel-row-vehicle" className="px-4 py-3">
                       <div className="text-gray-900">{r.vehicle_name}</div>
                       <div className="text-xs text-gray-500" dir="ltr">
                         {r.license_plate}
                       </div>
                     </td>
-                    <td className="px-4 py-3" dir="ltr">
+                    <td
+                      data-testid="fuel-row-liters"
+                      className="px-4 py-3"
+                      dir="ltr"
+                    >
                       {r.liters.toLocaleString('he-IL', {
                         maximumFractionDigits: 2,
                       })}
@@ -729,7 +805,11 @@ export function FuelManager({
                     <td className="px-4 py-3" dir="ltr">
                       {formatILS(r.price_per_liter)}
                     </td>
-                    <td className="px-4 py-3 font-medium text-gray-900" dir="ltr">
+                    <td
+                      data-testid="fuel-row-total"
+                      className="px-4 py-3 font-medium text-gray-900"
+                      dir="ltr"
+                    >
                       {formatILS(r.total_cost)}
                     </td>
                     <td className="px-4 py-3" dir="ltr">
@@ -742,11 +822,13 @@ export function FuelManager({
                       <div className="flex items-center gap-1 flex-wrap">
                         <GhostButton
                           onClick={() => setModal({ kind: 'edit', record: r })}
+                          testId="fuel-row-edit"
                         >
                           עריכה
                         </GhostButton>
                         <button
                           type="button"
+                          data-testid="fuel-row-delete"
                           onClick={() =>
                             setModal({ kind: 'delete', record: r })
                           }
@@ -762,7 +844,7 @@ export function FuelManager({
             </table>
           </div>
 
-          <div className="md:hidden space-y-3">
+          <div data-testid="fuel-list" className="md:hidden space-y-3">
             {filtered.map((r) => (
               <FuelCard
                 key={r.id}

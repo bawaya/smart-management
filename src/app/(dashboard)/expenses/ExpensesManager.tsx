@@ -8,13 +8,12 @@ import {
   useState,
 } from 'react';
 import {
-  type ExpenseCategory,
   type ExpensePayload,
-  VALID_CATEGORIES,
   addExpenseAction,
   deleteExpenseAction,
   updateExpenseAction,
 } from './actions';
+import { VALID_CATEGORIES, type ExpenseCategory } from './categories';
 
 export interface ExpenseRow {
   id: string;
@@ -197,15 +196,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -219,14 +221,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -338,7 +343,11 @@ function ExpenseFormModal({
       <h3 className="text-lg font-bold text-gray-900 mb-4">
         {editing ? 'עריכת הוצאה' : 'הוספת הוצאה'}
       </h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        data-testid="expenses-form"
+        className="space-y-4"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -346,6 +355,7 @@ function ExpenseFormModal({
             </label>
             <input
               type="date"
+              data-testid="expenses-form-expense-date"
               value={expenseDate}
               onChange={(e) => setExpenseDate(e.target.value)}
               required
@@ -358,6 +368,7 @@ function ExpenseFormModal({
               קטגוריה <span className="text-red-500">*</span>
             </label>
             <select
+              data-testid="expenses-form-category"
               value={category}
               onChange={(e) => handleCategoryChange(e.target.value)}
               required
@@ -377,6 +388,7 @@ function ExpenseFormModal({
             </label>
             <input
               type="number"
+              data-testid="expenses-form-amount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
@@ -392,6 +404,7 @@ function ExpenseFormModal({
             </label>
             <input
               type="text"
+              data-testid="expenses-form-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className={INPUT_CLASS}
@@ -404,6 +417,7 @@ function ExpenseFormModal({
                 רכב
               </label>
               <select
+                data-testid="expenses-form-vehicle-id"
                 value={vehicleId}
                 onChange={(e) => setVehicleId(e.target.value)}
                 className={INPUT_CLASS}
@@ -423,6 +437,7 @@ function ExpenseFormModal({
                 {equipmentLabel}
               </label>
               <select
+                data-testid="expenses-form-equipment-id"
                 value={equipmentId}
                 onChange={(e) => setEquipmentId(e.target.value)}
                 className={INPUT_CLASS}
@@ -442,6 +457,7 @@ function ExpenseFormModal({
                 עובד
               </label>
               <select
+                data-testid="expenses-form-worker-id"
                 value={workerId}
                 onChange={(e) => setWorkerId(e.target.value)}
                 className={INPUT_CLASS}
@@ -462,6 +478,7 @@ function ExpenseFormModal({
             </label>
             <input
               type="text"
+              data-testid="expenses-form-receipt-ref"
               value={receiptRef}
               onChange={(e) => setReceiptRef(e.target.value)}
               dir="ltr"
@@ -475,6 +492,7 @@ function ExpenseFormModal({
             הערות
           </label>
           <textarea
+            data-testid="expenses-form-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
@@ -485,6 +503,7 @@ function ExpenseFormModal({
         {error && (
           <div
             role="alert"
+            data-testid="expenses-form-error"
             className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
           >
             {error}
@@ -492,10 +511,18 @@ function ExpenseFormModal({
         )}
 
         <div className="flex items-center justify-end gap-2 pt-2">
-          <GhostButton onClick={onClose} disabled={submitting}>
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="expenses-form-cancel"
+          >
             ביטול
           </GhostButton>
-          <PrimaryButton type="submit" disabled={submitting}>
+          <PrimaryButton
+            type="submit"
+            disabled={submitting}
+            testId="expenses-form-submit"
+          >
             {submitting ? 'שומר...' : 'שמור'}
           </PrimaryButton>
         </div>
@@ -538,33 +565,40 @@ function DeleteModal({
 
   return (
     <Modal onClose={onClose} size="md">
-      <h3 className="text-lg font-bold text-gray-900">מחיקת הוצאה</h3>
-      <p className="mt-2 text-sm text-gray-600">
-        האם למחוק את ההוצאה מתאריך{' '}
-        <span dir="ltr">{formatDateIL(expense.expense_date)}</span> על סך{' '}
-        <span dir="ltr">{formatILS(expense.amount)}</span>? פעולה זו אינה ניתנת
-        לביטול.
-      </p>
-      {error && (
-        <div
-          role="alert"
-          className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
-        >
-          {error}
+      <div data-testid="expenses-delete-modal">
+        <h3 className="text-lg font-bold text-gray-900">מחיקת הוצאה</h3>
+        <p className="mt-2 text-sm text-gray-600">
+          האם למחוק את ההוצאה מתאריך{' '}
+          <span dir="ltr">{formatDateIL(expense.expense_date)}</span> על סך{' '}
+          <span dir="ltr">{formatILS(expense.amount)}</span>? פעולה זו אינה
+          ניתנת לביטול.
+        </p>
+        {error && (
+          <div
+            role="alert"
+            className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
+          >
+            {error}
+          </div>
+        )}
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="expenses-delete-cancel"
+          >
+            ביטול
+          </GhostButton>
+          <button
+            type="button"
+            data-testid="expenses-delete-confirm"
+            onClick={handleConfirm}
+            disabled={submitting}
+            className="px-4 py-2 rounded-md bg-red-600 text-white font-bold text-sm hover:bg-red-700 transition-colors disabled:opacity-60"
+          >
+            {submitting ? 'מוחק...' : 'מחק'}
+          </button>
         </div>
-      )}
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <GhostButton onClick={onClose} disabled={submitting}>
-          ביטול
-        </GhostButton>
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={submitting}
-          className="px-4 py-2 rounded-md bg-red-600 text-white font-bold text-sm hover:bg-red-700 transition-colors disabled:opacity-60"
-        >
-          {submitting ? 'מוחק...' : 'מחק'}
-        </button>
       </div>
     </Modal>
   );
@@ -590,22 +624,37 @@ function ExpenseCard({
 }) {
   const linked = linkageName(expense);
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+    <div
+      data-testid="expenses-row"
+      data-expense-id={expense.id}
+      className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+    >
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-bold text-gray-900" dir="ltr">
+          <p
+            data-testid="expenses-row-date"
+            className="font-bold text-gray-900"
+            dir="ltr"
+          >
             {formatDateIL(expense.expense_date)}
           </p>
-          <div className="mt-1">
+          <div data-testid="expenses-row-category" className="mt-1">
             <CategoryBadge category={expense.category} />
           </div>
         </div>
-        <span className="font-bold text-gray-900" dir="ltr">
+        <span
+          data-testid="expenses-row-amount"
+          className="font-bold text-gray-900"
+          dir="ltr"
+        >
           {formatILS(expense.amount)}
         </span>
       </header>
       {expense.description && (
-        <p className="mt-2 text-sm text-gray-700 truncate">
+        <p
+          data-testid="expenses-row-description"
+          className="mt-2 text-sm text-gray-700 truncate"
+        >
           {expense.description}
         </p>
       )}
@@ -615,9 +664,12 @@ function ExpenseCard({
         </p>
       )}
       <div className="mt-3 flex items-center justify-end gap-1">
-        <GhostButton onClick={onEdit}>עריכה</GhostButton>
+        <GhostButton onClick={onEdit} testId="expenses-row-edit">
+          עריכה
+        </GhostButton>
         <button
           type="button"
+          data-testid="expenses-row-delete"
           onClick={onDelete}
           className="px-3 py-2 rounded-md text-sm text-red-600 hover:bg-red-50"
         >
@@ -734,7 +786,10 @@ export function ExpensesManager({
       </div>
 
       <div className="flex flex-col md:flex-row gap-2 md:items-end flex-wrap">
-        <PrimaryButton onClick={() => setModal({ kind: 'add' })}>
+        <PrimaryButton
+          onClick={() => setModal({ kind: 'add' })}
+          testId="expenses-add-button"
+        >
           + הוסף הוצאה
         </PrimaryButton>
         <div className="flex items-end gap-2">
@@ -790,7 +845,10 @@ export function ExpensesManager({
       )}
 
       {expenses.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+        <div
+          data-testid="expenses-empty"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center"
+        >
           <p className="text-gray-600">אין הוצאות עדיין.</p>
         </div>
       ) : filtered.length === 0 ? (
@@ -801,7 +859,10 @@ export function ExpensesManager({
         </div>
       ) : (
         <>
-          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <div
+            data-testid="expenses-list"
+            className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto"
+          >
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-right">
                 <tr>
@@ -821,17 +882,32 @@ export function ExpensesManager({
                 {filtered.map((e) => {
                   const linked = linkageName(e);
                   return (
-                    <tr key={e.id}>
-                      <td className="px-4 py-3" dir="ltr">
+                    <tr
+                      key={e.id}
+                      data-testid="expenses-row"
+                      data-expense-id={e.id}
+                    >
+                      <td
+                        data-testid="expenses-row-date"
+                        className="px-4 py-3"
+                        dir="ltr"
+                      >
                         {formatDateIL(e.expense_date)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-testid="expenses-row-category" className="px-4 py-3">
                         <CategoryBadge category={e.category} />
                       </td>
-                      <td className="px-4 py-3 font-medium text-gray-900" dir="ltr">
+                      <td
+                        data-testid="expenses-row-amount"
+                        className="px-4 py-3 font-medium text-gray-900"
+                        dir="ltr"
+                      >
                         {formatILS(e.amount)}
                       </td>
-                      <td className="px-4 py-3 text-gray-700 max-w-xs truncate">
+                      <td
+                        data-testid="expenses-row-description"
+                        className="px-4 py-3 text-gray-700 max-w-xs truncate"
+                      >
                         {e.description ?? '—'}
                       </td>
                       <td className="px-4 py-3 text-gray-700 truncate">
@@ -841,11 +917,13 @@ export function ExpensesManager({
                         <div className="flex items-center gap-1 flex-wrap">
                           <GhostButton
                             onClick={() => setModal({ kind: 'edit', expense: e })}
+                            testId="expenses-row-edit"
                           >
                             עריכה
                           </GhostButton>
                           <button
                             type="button"
+                            data-testid="expenses-row-delete"
                             onClick={() =>
                               setModal({ kind: 'delete', expense: e })
                             }
@@ -862,7 +940,7 @@ export function ExpensesManager({
             </table>
           </div>
 
-          <div className="md:hidden space-y-3">
+          <div data-testid="expenses-list" className="md:hidden space-y-3">
             {filtered.map((e) => (
               <ExpenseCard
                 key={e.id}

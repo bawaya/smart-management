@@ -182,15 +182,18 @@ function PrimaryButton({
   disabled,
   onClick,
   type = 'button',
+  testId,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-md bg-[#f59e0b] text-black font-bold text-sm hover:bg-[#d97706] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -204,14 +207,17 @@ function GhostButton({
   children,
   onClick,
   disabled,
+  testId,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
@@ -429,7 +435,11 @@ function LogFormModal({
       <h3 className="text-lg font-bold text-gray-900 mb-4">
         {mode === 'edit' ? 'עריכת רישום' : 'רישום יום עבודה'}
       </h3>
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form
+        onSubmit={handleSubmit}
+        data-testid="daily-log-form"
+        className="space-y-5"
+      >
         <section className="space-y-3">
           <h4 className="text-sm font-semibold text-gray-800">פרטי העבודה</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -439,6 +449,7 @@ function LogFormModal({
               </label>
               <input
                 type="date"
+                data-testid="daily-log-form-log-date"
                 value={logDate}
                 onChange={(e) => setLogDate(e.target.value)}
                 required
@@ -451,6 +462,7 @@ function LogFormModal({
                 לקוח <span className="text-red-500">*</span>
               </label>
               <select
+                data-testid="daily-log-form-client-id"
                 value={clientId}
                 onChange={(e) => handleClientChange(e.target.value)}
                 required
@@ -469,6 +481,7 @@ function LogFormModal({
                 {equipmentLabel} <span className="text-red-500">*</span>
               </label>
               <select
+                data-testid="daily-log-form-equipment-id"
                 value={equipmentId}
                 onChange={(e) => setEquipmentId(e.target.value)}
                 required
@@ -488,6 +501,7 @@ function LogFormModal({
                 רכב
               </label>
               <select
+                data-testid="daily-log-form-vehicle-id"
                 value={vehicleId}
                 onChange={(e) => setVehicleId(e.target.value)}
                 className={INPUT_CLASS}
@@ -506,6 +520,7 @@ function LogFormModal({
               </label>
               <input
                 type="text"
+                data-testid="daily-log-form-location"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 className={INPUT_CLASS}
@@ -517,6 +532,7 @@ function LogFormModal({
               </label>
               <input
                 type="text"
+                data-testid="daily-log-form-project-name"
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
                 className={INPUT_CLASS}
@@ -535,6 +551,7 @@ function LogFormModal({
             </label>
             <input
               type="number"
+              data-testid="daily-log-form-equipment-revenue"
               value={equipmentRevenue}
               onChange={(e) => setEquipmentRevenue(e.target.value)}
               min="0"
@@ -549,13 +566,17 @@ function LogFormModal({
           </div>
         </section>
 
-        <section className="border border-gray-200 rounded-lg p-3">
+        <section
+          data-testid="daily-log-form-workers"
+          className="border border-gray-200 rounded-lg p-3"
+        >
           <header className="flex items-center justify-between mb-2">
             <h4 className="text-sm font-semibold text-gray-800">
               עובדים ביום זה
             </h4>
             <button
               type="button"
+              data-testid="daily-log-form-worker-add"
               onClick={handleAddAssignment}
               disabled={workers.length === 0}
               className="text-sm font-medium text-[#d97706] hover:text-[#b45309] disabled:opacity-50"
@@ -569,9 +590,11 @@ function LogFormModal({
             </p>
           ) : (
             <ul className="space-y-2">
-              {assignments.map((a) => (
+              {assignments.map((a, idx) => (
                 <li
                   key={a.key}
+                  data-testid="daily-log-form-worker-row"
+                  data-worker-index={idx}
                   className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-2 items-end p-2 rounded-md bg-gray-50"
                 >
                   <div>
@@ -579,6 +602,7 @@ function LogFormModal({
                       עובד
                     </label>
                     <select
+                      data-testid="daily-log-form-worker-select"
                       value={a.workerId}
                       onChange={(e) =>
                         handleAssignmentWorker(a.key, e.target.value)
@@ -599,6 +623,7 @@ function LogFormModal({
                     </label>
                     <input
                       type="number"
+                      data-testid="daily-log-form-worker-rate"
                       value={a.dailyRate}
                       onChange={(e) =>
                         handleAssignmentField(a.key, 'dailyRate', e.target.value)
@@ -615,6 +640,7 @@ function LogFormModal({
                     </label>
                     <input
                       type="number"
+                      data-testid="daily-log-form-worker-revenue"
                       value={a.revenue}
                       onChange={(e) =>
                         handleAssignmentField(a.key, 'revenue', e.target.value)
@@ -627,6 +653,7 @@ function LogFormModal({
                   </div>
                   <button
                     type="button"
+                    data-testid="daily-log-form-worker-remove"
                     onClick={() => handleRemoveAssignment(a.key)}
                     aria-label="הסר עובד"
                     className="h-10 w-10 rounded-md text-red-600 hover:bg-red-50 flex items-center justify-center font-bold"
@@ -685,6 +712,7 @@ function LogFormModal({
             הערות
           </label>
           <textarea
+            data-testid="daily-log-form-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
@@ -695,6 +723,7 @@ function LogFormModal({
         {error && (
           <div
             role="alert"
+            data-testid="daily-log-form-error"
             className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
           >
             {error}
@@ -702,10 +731,18 @@ function LogFormModal({
         )}
 
         <div className="flex items-center justify-end gap-2 pt-2">
-          <GhostButton onClick={onClose} disabled={submitting}>
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="daily-log-form-cancel"
+          >
             ביטול
           </GhostButton>
-          <PrimaryButton type="submit" disabled={submitting}>
+          <PrimaryButton
+            type="submit"
+            disabled={submitting}
+            testId="daily-log-form-submit"
+          >
             {submitting ? 'שומר...' : 'שמור'}
           </PrimaryButton>
         </div>
@@ -748,30 +785,37 @@ function ConfirmModal({
 
   return (
     <Modal onClose={onClose} size="md">
-      <h3 className="text-lg font-bold text-gray-900">אישור רישום</h3>
-      <p className="mt-2 text-sm text-gray-600">
-        האם לאשר את הרישום? לאחר אישור לא ניתן לערוך.
-      </p>
-      {error && (
-        <div
-          role="alert"
-          className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
-        >
-          {error}
+      <div data-testid="daily-log-confirm-modal">
+        <h3 className="text-lg font-bold text-gray-900">אישור רישום</h3>
+        <p className="mt-2 text-sm text-gray-600">
+          האם לאשר את הרישום? לאחר אישור לא ניתן לערוך.
+        </p>
+        {error && (
+          <div
+            role="alert"
+            className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm"
+          >
+            {error}
+          </div>
+        )}
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <GhostButton
+            onClick={onClose}
+            disabled={submitting}
+            testId="daily-log-confirm-cancel"
+          >
+            ביטול
+          </GhostButton>
+          <button
+            type="button"
+            data-testid="daily-log-confirm-submit"
+            onClick={handleConfirm}
+            disabled={submitting}
+            className="px-4 py-2 rounded-md bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition-colors disabled:opacity-60"
+          >
+            {submitting ? '...' : 'אשר'}
+          </button>
         </div>
-      )}
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <GhostButton onClick={onClose} disabled={submitting}>
-          ביטול
-        </GhostButton>
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={submitting}
-          className="px-4 py-2 rounded-md bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition-colors disabled:opacity-60"
-        >
-          {submitting ? '...' : 'אשר'}
-        </button>
       </div>
     </Modal>
   );
@@ -910,20 +954,37 @@ function LogCard({
   const totalRev = log.equipment_revenue + log.workers_revenue;
   const isDraft = log.status === 'draft';
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+    <div
+      data-testid="daily-log-row"
+      data-log-id={log.id}
+      className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+    >
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-bold text-gray-900" dir="ltr">
+          <p
+            data-testid="daily-log-row-date"
+            className="font-bold text-gray-900"
+            dir="ltr"
+          >
             {formatDateIL(log.log_date)}
           </p>
-          <p className="text-sm text-gray-600 truncate">{log.client_name}</p>
+          <p
+            data-testid="daily-log-row-client"
+            className="text-sm text-gray-600 truncate"
+          >
+            {log.client_name}
+          </p>
         </div>
-        <StatusBadge status={log.status} />
+        <div data-testid="daily-log-row-status">
+          <StatusBadge status={log.status} />
+        </div>
       </header>
       <dl className="mt-2 space-y-1 text-sm">
         <div className="flex justify-between">
           <dt className="text-gray-600">ציוד:</dt>
-          <dd className="truncate">{log.equipment_name}</dd>
+          <dd data-testid="daily-log-row-equipment" className="truncate">
+            {log.equipment_name}
+          </dd>
         </div>
         <div className="flex justify-between">
           <dt className="text-gray-600">עובדים:</dt>
@@ -937,11 +998,18 @@ function LogCard({
         </div>
       </dl>
       <div className="mt-3 flex items-center justify-end gap-1">
-        <GhostButton onClick={onView}>צפייה</GhostButton>
-        {isDraft && canEdit && <GhostButton onClick={onEdit}>עריכה</GhostButton>}
+        <GhostButton onClick={onView} testId="daily-log-row-view">
+          צפייה
+        </GhostButton>
+        {isDraft && canEdit && (
+          <GhostButton onClick={onEdit} testId="daily-log-row-edit">
+            עריכה
+          </GhostButton>
+        )}
         {isDraft && canWrite && (
           <button
             type="button"
+            data-testid="daily-log-row-confirm"
             onClick={onConfirm}
             className="px-3 py-2 rounded-md text-sm text-green-700 hover:bg-green-50"
           >
@@ -1046,7 +1114,10 @@ export function DailyLogManager({
 
       <div className="flex flex-col md:flex-row gap-2 md:items-end flex-wrap">
         {canWrite && (
-          <PrimaryButton onClick={() => setModal({ kind: 'add' })}>
+          <PrimaryButton
+            onClick={() => setModal({ kind: 'add' })}
+            testId="daily-log-add-button"
+          >
             + רישום יום עבודה
           </PrimaryButton>
         )}
@@ -1118,7 +1189,10 @@ export function DailyLogManager({
       )}
 
       {logs.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+        <div
+          data-testid="daily-log-empty"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center"
+        >
           <p className="text-gray-600">
             אין רישומים עדיין. התחל לרשום ימי עבודה.
           </p>
@@ -1131,7 +1205,10 @@ export function DailyLogManager({
         </div>
       ) : (
         <>
-          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <div
+            data-testid="daily-log-list"
+            className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto"
+          >
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-right">
                 <tr>
@@ -1153,12 +1230,30 @@ export function DailyLogManager({
                   const isDraft = log.status === 'draft';
                   const editable = canEditLog(log);
                   return (
-                    <tr key={log.id}>
-                      <td className="px-4 py-3" dir="ltr">
+                    <tr
+                      key={log.id}
+                      data-testid="daily-log-row"
+                      data-log-id={log.id}
+                    >
+                      <td
+                        data-testid="daily-log-row-date"
+                        className="px-4 py-3"
+                        dir="ltr"
+                      >
                         {formatDateIL(log.log_date)}
                       </td>
-                      <td className="px-4 py-3">{log.client_name}</td>
-                      <td className="px-4 py-3">{log.equipment_name}</td>
+                      <td
+                        data-testid="daily-log-row-client"
+                        className="px-4 py-3"
+                      >
+                        {log.client_name}
+                      </td>
+                      <td
+                        data-testid="daily-log-row-equipment"
+                        className="px-4 py-3"
+                      >
+                        {log.equipment_name}
+                      </td>
                       <td className="px-4 py-3">{log.vehicle_name ?? '—'}</td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-1.5 rounded-full bg-gray-100 text-gray-800 text-xs font-medium">
@@ -1168,19 +1263,21 @@ export function DailyLogManager({
                       <td className="px-4 py-3 font-medium text-gray-900" dir="ltr">
                         {formatILS(totalRev)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-testid="daily-log-row-status" className="px-4 py-3">
                         <StatusBadge status={log.status} />
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 flex-wrap">
                           <GhostButton
                             onClick={() => setModal({ kind: 'view', log })}
+                            testId="daily-log-row-view"
                           >
                             צפייה
                           </GhostButton>
                           {editable && (
                             <GhostButton
                               onClick={() => setModal({ kind: 'edit', log })}
+                              testId="daily-log-row-edit"
                             >
                               עריכה
                             </GhostButton>
@@ -1188,6 +1285,7 @@ export function DailyLogManager({
                           {isDraft && canWrite && (
                             <button
                               type="button"
+                              data-testid="daily-log-row-confirm"
                               onClick={() =>
                                 setModal({ kind: 'confirm', log })
                               }
@@ -1205,7 +1303,7 @@ export function DailyLogManager({
             </table>
           </div>
 
-          <div className="md:hidden space-y-3">
+          <div data-testid="daily-log-list" className="md:hidden space-y-3">
             {filteredLogs.map((log) => (
               <LogCard
                 key={log.id}
