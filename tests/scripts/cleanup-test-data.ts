@@ -27,7 +27,49 @@ const TENANT = 'default';
  *  1. FK sweep — يحذف كل صف بيشير لـ TEST_ parent (حتى لو الصف نفسه مش TEST_)
  *  2. Text match — يحذف صفوف الـ TEST_ نفسها
  */
-const CLEANUP_STEPS: Array<{ table: string; where: string; desc: string }> = [
+/**
+ * A cleanup step. Most are DELETEs. A few are UPDATEs to null out nullable
+ * FKs where the child is a real (non-TEST_) row but points at a TEST_ parent —
+ * we'd rather keep the real row and just unlink it.
+ */
+type CleanupStep =
+  | { table: string; where: string; desc: string }
+  | { table: string; set: string; where: string; desc: string; kind: 'update' };
+
+const CLEANUP_STEPS: CleanupStep[] = [
+  // =========================================================
+  // STAGE 0 — UPDATE: null out non-cascade FKs from non-TEST_
+  //                    children to TEST_ parents (keep the child row)
+  // =========================================================
+  {
+    table: 'checks',
+    set: 'linked_invoice_id = NULL',
+    where: `tenant_id = '${TENANT}' AND linked_invoice_id IN (SELECT id FROM invoices WHERE tenant_id = '${TENANT}' AND invoice_number LIKE 'TEST!_%' ESCAPE '!')`,
+    desc: 'checks.linked_invoice_id → NULL (unlink from TEST_ invoice)',
+    kind: 'update',
+  },
+  {
+    table: 'checks',
+    set: 'linked_expense_id = NULL',
+    where: `tenant_id = '${TENANT}' AND linked_expense_id IN (SELECT id FROM expenses WHERE tenant_id = '${TENANT}' AND description LIKE 'TEST!_%' ESCAPE '!')`,
+    desc: 'checks.linked_expense_id → NULL (unlink from TEST_ expense)',
+    kind: 'update',
+  },
+  {
+    table: 'fuel_records',
+    set: 'credit_card_id = NULL',
+    where: `tenant_id = '${TENANT}' AND credit_card_id IN (SELECT id FROM credit_cards WHERE tenant_id = '${TENANT}' AND card_name LIKE 'TEST!_%' ESCAPE '!')`,
+    desc: 'fuel_records.credit_card_id → NULL (unlink from TEST_ card)',
+    kind: 'update',
+  },
+  {
+    table: 'expenses',
+    set: 'credit_card_id = NULL, check_id = NULL, bank_account_id = NULL',
+    where: `tenant_id = '${TENANT}' AND (credit_card_id IN (SELECT id FROM credit_cards WHERE tenant_id = '${TENANT}' AND card_name LIKE 'TEST!_%' ESCAPE '!') OR check_id IN (SELECT id FROM checks WHERE tenant_id = '${TENANT}' AND (payee_or_payer LIKE 'TEST!_%' ESCAPE '!' OR check_number LIKE 'TEST!_%' ESCAPE '!')) OR bank_account_id IN (SELECT id FROM bank_accounts WHERE tenant_id = '${TENANT}' AND bank_name LIKE 'TEST!_%' ESCAPE '!'))`,
+    desc: 'expenses.credit_card_id/check_id/bank_account_id → NULL',
+    kind: 'update',
+  },
+
   // =========================================================
   // STAGE 1 — FK sweep: children referencing TEST_ parents
   // حتى لو الـ child نفسه مش marked TEST_ (عادة بيحصل لو اختبار
@@ -108,8 +150,10 @@ const CLEANUP_STEPS: Array<{ table: string; where: string; desc: string }> = [
   },
 
   // =========================================================
-  // STAGE 2 — Text-match deletes (original logic)
-  // الـ children الأولى — صفوف بتعتمد على parent
+  // STAGE 2 — Text-match deletes (original logic) + a critical
+  // FK-based pass: invoice_items.daily_log_id has no cascade, so
+  // any item generated from a TEST_ daily_log for a non-TEST_
+  // invoice blocks the daily_log delete downstream.
   // =========================================================
 
   // فواتير وعناصرها
@@ -117,6 +161,13 @@ const CLEANUP_STEPS: Array<{ table: string; where: string; desc: string }> = [
     table: 'invoice_items',
     where: `invoice_id IN (SELECT id FROM invoices WHERE tenant_id = '${TENANT}' AND invoice_number LIKE 'TEST!_%' ESCAPE '!')`,
     desc: 'invoice_items (via TEST_ invoices)',
+  },
+  // invoice_items that link a non-TEST_ invoice to a TEST_ daily_log —
+  // daily_log_id has no ON DELETE CASCADE, so we must clear these first.
+  {
+    table: 'invoice_items',
+    where: `daily_log_id IN (SELECT id FROM daily_logs WHERE tenant_id = '${TENANT}' AND (project_name LIKE 'TEST!_%' ESCAPE '!' OR location LIKE 'TEST!_%' ESCAPE '!'))`,
+    desc: 'invoice_items (FK → TEST_ daily_log, non-cascade)',
   },
   // worker_assignments مربوطة بـ daily_logs
   {
@@ -259,7 +310,11 @@ export async function cleanupTestData(): Promise<void> {
   let sql = '-- Cleanup test data — auto-generated\n\n';
   for (const step of CLEANUP_STEPS) {
     sql += `-- ${step.desc}\n`;
-    sql += `DELETE FROM ${step.table} WHERE ${step.where};\n\n`;
+    if ('kind' in step && step.kind === 'update') {
+      sql += `UPDATE ${step.table} SET ${step.set} WHERE ${step.where};\n\n`;
+    } else {
+      sql += `DELETE FROM ${step.table} WHERE ${step.where};\n\n`;
+    }
   }
   writeFileSync(SQL_PATH, sql, 'utf8');
 
