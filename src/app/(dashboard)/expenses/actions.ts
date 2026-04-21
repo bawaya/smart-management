@@ -5,22 +5,7 @@ import { verifyToken } from '@/lib/auth/jwt';
 import type { Role } from '@/lib/auth/rbac';
 import { getDb } from '@/lib/db';
 import { generateId } from '@/lib/utils/id';
-
-export const VALID_CATEGORIES = [
-  'fuel',
-  'vehicle_insurance',
-  'vehicle_license',
-  'vehicle_maintenance',
-  'vehicle_rental',
-  'equipment_maintenance',
-  'worker_payment',
-  'office',
-  'phone',
-  'internet',
-  'other',
-] as const;
-
-export type ExpenseCategory = (typeof VALID_CATEGORIES)[number];
+import { VALID_CATEGORIES, type ExpenseCategory } from './categories';
 
 export type ExpenseMutationResult =
   | { success: true; id?: string }

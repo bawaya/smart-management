@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
 import type { Role } from '@/lib/auth/rbac';
 import { getDb } from '@/lib/db';
+import { isUniqueConstraintError } from '@/lib/db/errors';
 
 export type WorkerMutationResult =
   | { success: true }
@@ -45,12 +46,6 @@ function rateToNullable(v: string | undefined | null): number | null {
   return n;
 }
 
-function isUniqueConstraintError(err: unknown): boolean {
-  const e = err as { code?: string; message?: string };
-  if (!e?.code?.startsWith('SQLITE_CONSTRAINT')) return false;
-  return (e.message ?? '').toLowerCase().includes('id_number');
-}
-
 export async function addWorkerAction(
   tenantId: string,
   data: WorkerPayload,
@@ -78,7 +73,7 @@ export async function addWorkerAction(
       ],
     );
   } catch (err) {
-    if (isUniqueConstraintError(err)) {
+    if (isUniqueConstraintError(err, 'id_number')) {
       return { success: false, error: DUPLICATE_ID_ERROR };
     }
     throw err;
@@ -121,7 +116,7 @@ export async function updateWorkerAction(
       return { success: false, error: 'העובד לא נמצא' };
     }
   } catch (err) {
-    if (isUniqueConstraintError(err)) {
+    if (isUniqueConstraintError(err, 'id_number')) {
       return { success: false, error: DUPLICATE_ID_ERROR };
     }
     throw err;

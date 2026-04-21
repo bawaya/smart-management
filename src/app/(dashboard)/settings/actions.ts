@@ -5,6 +5,10 @@ import { verifyToken } from '@/lib/auth/jwt';
 import { hashPassword } from '@/lib/auth/password';
 import type { Role } from '@/lib/auth/rbac';
 import { getDb } from '@/lib/db';
+import {
+  isForeignKeyError,
+  isUniqueConstraintError,
+} from '@/lib/db/errors';
 
 const VALID_ROLES: readonly Role[] = [
   'owner',
@@ -306,8 +310,7 @@ export async function deleteEquipmentTypeAction(
     }
     return { success: true };
   } catch (err) {
-    const code = (err as { code?: string }).code;
-    if (code && code.startsWith('SQLITE_CONSTRAINT')) {
+    if (isForeignKeyError(err)) {
       return {
         success: false,
         error: 'לא ניתן למחוק — הסוג בשימוש בציוד קיים',
@@ -386,8 +389,7 @@ export async function addUserAction(
       ],
     );
   } catch (err) {
-    const code = (err as { code?: string }).code;
-    if (code && code.startsWith('SQLITE_CONSTRAINT')) {
+    if (isUniqueConstraintError(err, 'username')) {
       return { success: false, error: 'שם המשתמש כבר קיים' };
     }
     throw err;
