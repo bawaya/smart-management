@@ -22,8 +22,96 @@ const TENANT = 'default';
 /**
  * ترتيب FK-aware: كل entry = (table, where_clause).
  * ينفّذ من الأعلى للأسفل — children أولاً.
+ *
+ * يستعمل مقاربتين متتاليتين:
+ *  1. FK sweep — يحذف كل صف بيشير لـ TEST_ parent (حتى لو الصف نفسه مش TEST_)
+ *  2. Text match — يحذف صفوف الـ TEST_ نفسها
  */
 const CLEANUP_STEPS: Array<{ table: string; where: string; desc: string }> = [
+  // =========================================================
+  // STAGE 1 — FK sweep: children referencing TEST_ parents
+  // حتى لو الـ child نفسه مش marked TEST_ (عادة بيحصل لو اختبار
+  // ربط بيانات حقيقية مع TEST_ FK بالخطأ أو من flow مكسور).
+  // =========================================================
+
+  // expenses بتشير لـ TEST_ vehicle/equipment/worker
+  {
+    table: 'expenses',
+    where: `tenant_id = '${TENANT}' AND (vehicle_id IN (SELECT id FROM vehicles WHERE tenant_id = '${TENANT}' AND (name LIKE 'TEST!_%' ESCAPE '!' OR license_plate LIKE 'TEST!_%' ESCAPE '!')) OR equipment_id IN (SELECT id FROM equipment WHERE tenant_id = '${TENANT}' AND name LIKE 'TEST!_%' ESCAPE '!') OR worker_id IN (SELECT id FROM workers WHERE tenant_id = '${TENANT}' AND full_name LIKE 'TEST!_%' ESCAPE '!'))`,
+    desc: 'expenses (FK → TEST_ vehicle/equipment/worker)',
+  },
+  // fuel_records بتشير لـ TEST_ vehicle
+  {
+    table: 'fuel_records',
+    where: `tenant_id = '${TENANT}' AND vehicle_id IN (SELECT id FROM vehicles WHERE tenant_id = '${TENANT}' AND (name LIKE 'TEST!_%' ESCAPE '!' OR license_plate LIKE 'TEST!_%' ESCAPE '!'))`,
+    desc: 'fuel_records (FK → TEST_ vehicle)',
+  },
+  // worker_assignments بتشير لـ TEST_ worker (بغضّ النظر عن الـ daily_log)
+  {
+    table: 'worker_assignments',
+    where: `worker_id IN (SELECT id FROM workers WHERE tenant_id = '${TENANT}' AND full_name LIKE 'TEST!_%' ESCAPE '!')`,
+    desc: 'worker_assignments (FK → TEST_ worker)',
+  },
+  // daily_logs بتشير لـ TEST_ client/equipment/vehicle
+  {
+    table: 'daily_logs',
+    where: `tenant_id = '${TENANT}' AND (client_id IN (SELECT id FROM clients WHERE tenant_id = '${TENANT}' AND name LIKE 'TEST!_%' ESCAPE '!') OR equipment_id IN (SELECT id FROM equipment WHERE tenant_id = '${TENANT}' AND name LIKE 'TEST!_%' ESCAPE '!') OR vehicle_id IN (SELECT id FROM vehicles WHERE tenant_id = '${TENANT}' AND (name LIKE 'TEST!_%' ESCAPE '!' OR license_plate LIKE 'TEST!_%' ESCAPE '!')))`,
+    desc: 'daily_logs (FK → TEST_ client/equipment/vehicle)',
+  },
+  // invoices بتشير لـ TEST_ client
+  {
+    table: 'invoices',
+    where: `tenant_id = '${TENANT}' AND client_id IN (SELECT id FROM clients WHERE tenant_id = '${TENANT}' AND name LIKE 'TEST!_%' ESCAPE '!')`,
+    desc: 'invoices (FK → TEST_ client)',
+  },
+  // financial_transactions بتشير لـ TEST_ bank/card/check/standing_order/invoice/expense
+  {
+    table: 'financial_transactions',
+    where: `tenant_id = '${TENANT}' AND (bank_account_id IN (SELECT id FROM bank_accounts WHERE tenant_id = '${TENANT}' AND bank_name LIKE 'TEST!_%' ESCAPE '!') OR credit_card_id IN (SELECT id FROM credit_cards WHERE tenant_id = '${TENANT}' AND card_name LIKE 'TEST!_%' ESCAPE '!') OR check_id IN (SELECT id FROM checks WHERE tenant_id = '${TENANT}' AND (payee_or_payer LIKE 'TEST!_%' ESCAPE '!' OR check_number LIKE 'TEST!_%' ESCAPE '!')) OR standing_order_id IN (SELECT id FROM standing_orders WHERE tenant_id = '${TENANT}' AND payee_name LIKE 'TEST!_%' ESCAPE '!') OR invoice_id IN (SELECT id FROM invoices WHERE tenant_id = '${TENANT}' AND invoice_number LIKE 'TEST!_%' ESCAPE '!') OR expense_id IN (SELECT id FROM expenses WHERE tenant_id = '${TENANT}' AND description LIKE 'TEST!_%' ESCAPE '!'))`,
+    desc: 'financial_transactions (FK → TEST_ bank/card/check/so/invoice/expense)',
+  },
+  // credit_cards بتشير لـ TEST_ bank
+  {
+    table: 'credit_cards',
+    where: `tenant_id = '${TENANT}' AND bank_account_id IN (SELECT id FROM bank_accounts WHERE tenant_id = '${TENANT}' AND bank_name LIKE 'TEST!_%' ESCAPE '!')`,
+    desc: 'credit_cards (FK → TEST_ bank_account)',
+  },
+  // checks بتشير لـ TEST_ bank
+  {
+    table: 'checks',
+    where: `tenant_id = '${TENANT}' AND bank_account_id IN (SELECT id FROM bank_accounts WHERE tenant_id = '${TENANT}' AND bank_name LIKE 'TEST!_%' ESCAPE '!')`,
+    desc: 'checks (FK → TEST_ bank_account)',
+  },
+  // standing_orders بتشير لـ TEST_ bank
+  {
+    table: 'standing_orders',
+    where: `tenant_id = '${TENANT}' AND bank_account_id IN (SELECT id FROM bank_accounts WHERE tenant_id = '${TENANT}' AND bank_name LIKE 'TEST!_%' ESCAPE '!')`,
+    desc: 'standing_orders (FK → TEST_ bank_account)',
+  },
+  // bank_reconciliations بتشير لـ TEST_ bank
+  {
+    table: 'bank_reconciliations',
+    where: `tenant_id = '${TENANT}' AND bank_account_id IN (SELECT id FROM bank_accounts WHERE tenant_id = '${TENANT}' AND bank_name LIKE 'TEST!_%' ESCAPE '!')`,
+    desc: 'bank_reconciliations (FK → TEST_ bank_account)',
+  },
+  // debts بتشير لـ TEST_ worker/client
+  {
+    table: 'debts',
+    where: `tenant_id = '${TENANT}' AND (worker_id IN (SELECT id FROM workers WHERE tenant_id = '${TENANT}' AND full_name LIKE 'TEST!_%' ESCAPE '!') OR client_id IN (SELECT id FROM clients WHERE tenant_id = '${TENANT}' AND name LIKE 'TEST!_%' ESCAPE '!'))`,
+    desc: 'debts (FK → TEST_ worker/client)',
+  },
+  // equipment بتشير لـ TEST_ equipment_type
+  {
+    table: 'equipment',
+    where: `tenant_id = '${TENANT}' AND equipment_type_id IN (SELECT id FROM equipment_types WHERE tenant_id = '${TENANT}' AND (name_ar LIKE 'TEST!_%' ESCAPE '!' OR name_he LIKE 'TEST!_%' ESCAPE '!'))`,
+    desc: 'equipment (FK → TEST_ equipment_type)',
+  },
+
+  // =========================================================
+  // STAGE 2 — Text-match deletes (original logic)
+  // الـ children الأولى — صفوف بتعتمد على parent
+  // =========================================================
+
   // فواتير وعناصرها
   {
     table: 'invoice_items',
