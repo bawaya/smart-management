@@ -7,6 +7,9 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
@@ -44,15 +47,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: lint-and-typecheck
-    # Skip e2e on PRs from forks — secrets aren't exposed there for security.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Install test deps
         working-directory: tests
@@ -79,19 +79,16 @@ jobs:
         working-directory: tests
         env:
           BASE_URL: https://smart-management.pages.dev
-          # Usernames (not sensitive — deterministic)
           OWNER_USERNAME: ${{ secrets.OWNER_USERNAME }}
           MANAGER_USERNAME: test_manager
           ACCOUNTANT_USERNAME: test_accountant
           OPERATOR_USERNAME: test_operator
           VIEWER_USERNAME: test_viewer
-          # Passwords from secrets
           OWNER_PASSWORD: ${{ secrets.OWNER_PASSWORD }}
           MANAGER_PASSWORD: ${{ secrets.MANAGER_PASSWORD }}
           ACCOUNTANT_PASSWORD: ${{ secrets.ACCOUNTANT_PASSWORD }}
           OPERATOR_PASSWORD: ${{ secrets.OPERATOR_PASSWORD }}
           VIEWER_PASSWORD: ${{ secrets.VIEWER_PASSWORD }}
-          # Cloudflare credentials for teardown (wrangler D1 execute --remote)
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: ./node_modules/.bin/playwright test --reporter=list,html
