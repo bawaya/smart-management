@@ -1,0 +1,113 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-typecheck:
+    name: Lint + TypeCheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install root deps
+        run: npm ci
+
+      - name: TypeScript check (app)
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Install test deps + TypeScript check
+        working-directory: tests
+        run: |
+          npm ci
+          npm run check
+
+  e2e:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: lint-and-typecheck
+    # Skip e2e on PRs from forks — secrets aren't exposed there for security.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install test deps
+        working-directory: tests
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/package-lock.json') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        working-directory: tests
+        run: npx playwright install chromium --with-deps
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        working-directory: tests
+        run: npx playwright install-deps chromium
+
+      - name: Run E2E tests
+        working-directory: tests
+        env:
+          BASE_URL: https://smart-management.pages.dev
+          # Usernames (not sensitive — deterministic)
+          OWNER_USERNAME: ${{ secrets.OWNER_USERNAME }}
+          MANAGER_USERNAME: test_manager
+          ACCOUNTANT_USERNAME: test_accountant
+          OPERATOR_USERNAME: test_operator
+          VIEWER_USERNAME: test_viewer
+          # Passwords from secrets
+          OWNER_PASSWORD: ${{ secrets.OWNER_PASSWORD }}
+          MANAGER_PASSWORD: ${{ secrets.MANAGER_PASSWORD }}
+          ACCOUNTANT_PASSWORD: ${{ secrets.ACCOUNTANT_PASSWORD }}
+          OPERATOR_PASSWORD: ${{ secrets.OPERATOR_PASSWORD }}
+          VIEWER_PASSWORD: ${{ secrets.VIEWER_PASSWORD }}
+          # Cloudflare credentials for teardown (wrangler D1 execute --remote)
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: ./node_modules/.bin/playwright test --reporter=list,html
+
+      - name: Upload Playwright HTML report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: tests/playwright-report/
+          retention-days: 14
+
+      - name: Upload trace files on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces-${{ github.run_id }}
+          path: tests/test-results/
+          retention-days: 7
