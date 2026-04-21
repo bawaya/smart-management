@@ -69,6 +69,20 @@ const CLEANUP_STEPS: CleanupStep[] = [
     desc: 'expenses.credit_card_id/check_id/bank_account_id → NULL',
     kind: 'update',
   },
+  {
+    table: 'debt_payments',
+    set: 'transaction_id = NULL',
+    where: `tenant_id = '${TENANT}' AND transaction_id IN (SELECT id FROM financial_transactions WHERE tenant_id = '${TENANT}' AND (counterparty LIKE 'TEST!_%' ESCAPE '!' OR description LIKE 'TEST!_%' ESCAPE '!' OR reference_number LIKE 'TEST!_%' ESCAPE '!'))`,
+    desc: 'debt_payments.transaction_id → NULL (unlink from TEST_ transaction)',
+    kind: 'update',
+  },
+  {
+    table: 'reconciliation_items',
+    set: 'transaction_id = NULL',
+    where: `tenant_id = '${TENANT}' AND transaction_id IN (SELECT id FROM financial_transactions WHERE tenant_id = '${TENANT}' AND (counterparty LIKE 'TEST!_%' ESCAPE '!' OR description LIKE 'TEST!_%' ESCAPE '!' OR reference_number LIKE 'TEST!_%' ESCAPE '!'))`,
+    desc: 'reconciliation_items.transaction_id → NULL (unlink from TEST_ transaction)',
+    kind: 'update',
+  },
 
   // =========================================================
   // STAGE 1 — FK sweep: children referencing TEST_ parents
