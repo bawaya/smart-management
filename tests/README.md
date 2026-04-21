@@ -1,98 +1,183 @@
-# ניהול חכם — Tests
+# Smart Management — E2E Test Suite
 
-## Setup
+Playwright end-to-end tests for [smart-management.pages.dev](https://smart-management.pages.dev).
 
-```powershell
-cd C:\smart-management\tests
+## Coverage
+
+| Phase | Module | Status |
+|-------|--------|:--:|
+| 2 | Auth, JWT, middleware | ✅ |
+| 3 | RBAC matrix (5 roles × 29 pages) | ✅ |
+| 4 | Cleanup infrastructure | ✅ |
+| 5A | Equipment CRUD | ✅ |
+| 5B | Master data (vehicles, workers, equipment-types, clients) | ✅ |
+| 5C | Operations (fuel, expenses, daily-log) | ✅ |
+| 5D | Financial modules (10 sub-managers) | ✅ |
+| 6a | Business flows: invoice lifecycle + cancellation | ✅ |
+| 6b | Business flows: equipment, budget, check lifecycles | ✅ |
+| 7 | Reports smoke + accuracy | ✅ |
+| 8 | Security (XSS, SQL injection, auth bypass) | ✅ |
+| 9 | Defense layer (smoke, PWA, empty states) | ✅ |
+
+All test data is `TEST_`-prefixed and removed by the global teardown via `wrangler d1 execute --remote`.
+
+## Quick Start
+
+```bash
+cd tests
 npm install
 npx playwright install chromium
-Copy-Item .env.example .env
-# עדّל .env وضيف credentials للأدوار الـ 5
+
+# Create local env from template
+cp .env.example .env
+# Edit .env with credentials (see below)
 ```
 
-## إدارة مستخدمي الاختبار
+### First-time test users
 
-### قبل التشغيل أول مرة
+The 4 non-owner roles are seeded into prod via:
 
-1. افتح `tests/.env`
-2. ضع كلمة مرور الـ admin:
-   ```
-   OWNER_USERNAME=admin
-   OWNER_PASSWORD=<كلمة مرور admin على الإنتاج>
-   ```
-3. شغّل:
-   ```powershell
-   npm run users:create
-   npm run users:verify
-   ```
-
-### إعادة تعيين
-
-```powershell
-npm run users:reset    # يحذف الـ 4 الاختباريين
-npm run users:create   # ينشئهم من جديد
+```bash
+# Owner credentials (admin) must already exist in .env
+npm run users:seed
+npm run users:verify
 ```
 
-## تشغيل
+## Running Tests
 
-```powershell
-.\run-all.ps1 -Suite smoke    # smoke فقط
-.\run-all.ps1 -Suite auth     # auth
-.\run-all.ps1 -Suite rbac     # rbac matrix
-.\run-all.ps1 -Suite security # أمان
-.\run-all.ps1 -Suite all      # الكل
+```bash
+# All tests
+./node_modules/.bin/playwright test --reporter=list
+
+# Specific spec
+./node_modules/.bin/playwright test e2e/10-equipment
+
+# Visual debug mode (opens Playwright UI)
+./node_modules/.bin/playwright test --ui
+
+# Headed (watch the browser)
+./node_modules/.bin/playwright test --headed
+
+# View last HTML report
+./node_modules/.bin/playwright show-report
+
+# Manual cleanup of TEST_ data
+npm run test:cleanup
 ```
 
-## تقارير
+## Architecture
 
-```powershell
-npm run report
+### Helpers
+
+| File | Purpose |
+|------|---------|
+| `utils/master-helpers.ts` | Generic CRUD operations (add/edit/toggle/delete by text + form fill) across all modules |
+| `utils/equipment-helpers.ts` | Equipment-specific status modal flow |
+| `utils/daily-log-helpers.ts` | Worker assignments + log confirmation |
+| `utils/finance-helpers.ts` | Bank-account prereq + invoice/debt payments + reconciliation step nav |
+| `utils/flow-helpers.ts` | End-to-end business flows (build/confirm/invoice/pay/cancel) |
+| `utils/prereq-seeder.ts` | Ensures FK dependencies exist (clients, workers, equipment) |
+| `utils/report-seeders.ts` | Deterministic data + number parsing for report-accuracy tests |
+| `utils/security-payloads.ts` | XSS + SQL injection payloads |
+| `utils/test-data.ts` | `TEST_`-prefixed identifier generators |
+| `utils/ui-helpers.ts` | `submitAndWait` with 300ms settle for Server Action revalidation race |
+
+### Conventions
+
+- **All write operations use `TEST_` prefix** — the cleanup script targets only those rows
+- **`data-testid`** attributes for stable selectors (kebab-case, semantic naming)
+- **Storage state caching** — one login per role at startup, reused across tests
+- **Server-side cleanup** via `wrangler d1 execute --remote` after every run
+
+## CI
+
+GitHub Actions runs the full suite on every push to `main`/`master` and every PR — see [.github/workflows/test.yml](../.github/workflows/test.yml).
+
+### Required Secrets
+
+Add to GitHub repo → Settings → Secrets and variables → Actions:
+
+| Secret | Description |
+|--------|-------------|
+| `OWNER_USERNAME` | Real owner username on prod (typically `admin`) |
+| `OWNER_PASSWORD` | Owner password |
+| `MANAGER_PASSWORD` | `test_manager` password |
+| `ACCOUNTANT_PASSWORD` | `test_accountant` password |
+| `OPERATOR_PASSWORD` | `test_operator` password |
+| `VIEWER_PASSWORD` | `test_viewer` password |
+| `CLOUDFLARE_API_TOKEN` | API token with `Account → D1 → Edit` permission |
+| `CLOUDFLARE_ACCOUNT_ID` | From `wrangler.toml` |
+
+Usernames for the 4 seeded roles are hardcoded in the workflow (deterministic). Only the owner username is a secret because it points at a real user account.
+
+### Cloudflare API Token
+
+1. Visit https://dash.cloudflare.com/profile/api-tokens
+2. **Create Token** → **Custom Token**
+3. Permissions: `Account → D1 → Edit`
+4. Account Resources: Include → Specific → `smart-management`
+5. Save and copy
+
+### Workflow Behavior
+
+- Cancels previous runs on the same branch when a new push arrives
+- Caches Playwright browsers between runs (~2 min savings)
+- On failure, uploads:
+  - **HTML report** (artifact: `playwright-report-<run-id>`)
+  - **Trace files** (artifact: `playwright-traces-<run-id>`) — open with `npx playwright show-trace`
+- Retention: 7-14 days
+
+### Manual Trigger
+
+Actions tab → **E2E Tests** → **Run workflow** → choose branch.
+
+## Bug Discoveries
+
+This suite has caught real production bugs (now fixed in v1.0.1):
+
+1. **D1 UNIQUE constraint detection** — Workers couldn't get clear error messages on duplicate ID numbers because D1 returns a different error format than SQLite (`D1_ERROR` vs `SQLITE_CONSTRAINT`).
+2. **`/expenses` page client crash** — A `'use server'` const export was breaking React hydration with `TypeError: i.map is not a function`.
+
+## Adding New Tests
+
+1. Add `data-testid` attributes to source components first (one PR — UI only)
+2. Deploy to staging
+3. Write tests against production (separate PR)
+4. Use `TEST_` prefix for any data created
+5. Verify cleanup includes new tables/columns
+
+## Troubleshooting
+
+### "Browser not installed"
+
+```bash
+npx playwright install chromium
 ```
 
----
+### "Unable to launch chromium" on WSL
 
-## CI — GitHub Actions
+```bash
+sudo npx playwright install-deps chromium
+```
 
-الـ workflow في [.github/workflows/test.yml](../.github/workflows/test.yml) بيشغّل الـ suite على كل push لـ `main` أو `master` + على PRs (من نفس الـ repo).
+### Tests time out / network errors
 
-### Required secrets
+Verify production URL is reachable:
 
-روح Settings → Secrets and variables → Actions → New repository secret، وضيف:
+```bash
+curl -I https://smart-management.pages.dev/login
+```
 
-| Secret | وصف |
-|---|---|
-| `OWNER_USERNAME` | اسم مستخدم الـ owner الحقيقي على prod (عادةً `admin`) |
-| `OWNER_PASSWORD` | كلمة مرور الـ owner |
-| `MANAGER_PASSWORD` | كلمة مرور `test_manager` |
-| `ACCOUNTANT_PASSWORD` | كلمة مرور `test_accountant` |
-| `OPERATOR_PASSWORD` | كلمة مرور `test_operator` |
-| `VIEWER_PASSWORD` | كلمة مرور `test_viewer` |
-| `CLOUDFLARE_API_TOKEN` | API token بصلاحية D1:Edit لـ `smart-management` — للـ teardown cleanup |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID (موجود في `wrangler.toml`) |
+### Cleanup didn't run
 
-الـ usernames للـ 4 roles الـ seeded (manager/accountant/operator/viewer) hardcoded في الـ workflow لأنها deterministic.
+```bash
+npm run test:cleanup
+```
 
-### كيف تحصل على Cloudflare API token
+### Wrangler workerd platform mismatch (Windows native)
 
-1. https://dash.cloudflare.com/profile/api-tokens
-2. Create Token → Custom Token
-3. Permissions: **Account** → **D1** → **Edit**
-4. Account Resources: Include → Specific → حدد الحساب
-5. Save & copy
+Run from WSL — `wrangler` and `@cloudflare/next-on-pages` need a Linux toolchain.
 
-### تشغيل يدوي
+## License
 
-Actions tab → "E2E Tests" → Run workflow → اختر الـ branch.
-
-### Runtime على CI
-
-~5-7 دقائق للـ ~170 test (392 لو احتسبنا Phase 3 RBAC matrix كاملة).
-
-### Failure artifacts
-
-لو فشل أي test، الـ workflow يرفع:
-- `playwright-report-<run-id>`: HTML report (افتح `index.html`)
-- `playwright-traces-<run-id>`: trace files (`npx playwright show-trace <file>`)
-
-Retention: 7-14 يوم.
-
+Proprietary. Tests are bundled with the project under the same license.
