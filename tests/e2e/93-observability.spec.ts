@@ -23,14 +23,34 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { BASE_URL } from '../utils/config';
-import { storageStatePath } from '../utils/storage-state';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   makeMarker,
   queryByMarker,
   waitForLogRow,
   waitForStableCount,
 } from '../utils/observability-helpers';
+
+/**
+ * Ephemeral creds for the auth_ok test. Written by
+ * `tests/scripts/seed-observability-user.ts` before the run and removed by
+ * `cleanup-observability-user.ts` after. When missing (e.g. running the spec
+ * directly without the orchestrator), the auth_ok test skips with a clear
+ * message — the other 11 tests still run.
+ */
+interface ObsCreds {
+  username: string;
+  password: string;
+  id: string;
+  role: string;
+  tenant_id: string;
+}
+
+const CREDS_PATH = join(process.cwd(), '.tmp', 'observability-creds.json');
+const OBS_CREDS: ObsCreds | null = existsSync(CREDS_PATH)
+  ? (JSON.parse(readFileSync(CREDS_PATH, 'utf8')) as ObsCreds)
+  : null;
 
 test.describe('Observability middleware — request_log', () => {
   // wrangler round-trips add latency (~1.5s each). Give each test 60s.
@@ -148,30 +168,48 @@ test.describe('Observability middleware — request_log', () => {
   // 3) Authenticated requests → auth_ok with user_id + tenant_id
   // ==========================================================
 
-  test('authenticated GET /reports → auth_ok with user_id/tenant_id', async ({ playwright }) => {
+  test('authenticated GET /reports → auth_ok with user_id/tenant_id', async ({ request }) => {
+    test.skip(
+      OBS_CREDS === null,
+      'No ephemeral creds at .tmp/observability-creds.json — run via `npm run test:observability` (seeds + cleans up a temp user)',
+    );
     const marker = makeMarker('auth-ok-reports');
-    // Build a fresh API context carrying the owner's cookie + our UA marker.
-    const ctx = await playwright.request.newContext({
-      baseURL: BASE_URL,
-      storageState: storageStatePath('owner'),
-      extraHTTPHeaders: { 'User-Agent': marker },
+
+    // Log in via the /api/auth/login endpoint (bypassed from middleware
+    // logging) to get an auth-token cookie, then attach it + our UA marker
+    // to the protected request.
+    const loginRes = await request.post('/api/auth/login', {
+      data: { username: OBS_CREDS!.username, password: OBS_CREDS!.password },
     });
-    try {
-      const res = await ctx.get('/reports', { maxRedirects: 0 });
-      // 200 when auth passes; never a redirect to /login in this path
-      expect([200, 204]).toContain(res.status());
-    } finally {
-      await ctx.dispose();
-    }
+    expect(loginRes.ok(), 'temp user login must succeed').toBeTruthy();
+    const setCookie = loginRes.headers()['set-cookie'] ?? '';
+    const tokenMatch = setCookie.match(/auth-token=([^;]+)/);
+    expect(tokenMatch, 'auth-token cookie must be set by login').not.toBeNull();
+    const authToken = tokenMatch![1];
+
+    const res = await request.get('/reports', {
+      headers: {
+        'User-Agent': marker,
+        Cookie: `auth-token=${authToken}`,
+      },
+      maxRedirects: 0,
+    });
+    // The middleware sees a valid token and records auth_ok — that is
+    // what this test is about. The handler may then do anything: render
+    // (200), return empty (204), or redirect internally (e.g. viewer →
+    // /setup because the default tenant has is_setup_complete=0). We
+    // accept any non-error status since the assertion below verifies the
+    // log row explicitly.
+    expect(
+      res.status(),
+      `Expected authenticated response <400; got ${res.status()}`,
+    ).toBeLessThan(400);
 
     const row = await waitForLogRow({ marker });
     expect(row).not.toBeNull();
     expect(row!.outcome).toBe('auth_ok');
-    expect(row!.user_id).toBeTruthy();
-    expect(row!.tenant_id).toBeTruthy();
-    // Owner in our seed data has user_id='admin' in tenant_id='default'
-    expect(row!.user_id).toBe('admin');
-    expect(row!.tenant_id).toBe('default');
+    expect(row!.user_id).toBe(OBS_CREDS!.id);
+    expect(row!.tenant_id).toBe(OBS_CREDS!.tenant_id);
   });
 
   // ==========================================================
