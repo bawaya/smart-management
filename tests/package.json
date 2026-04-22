@@ -20,7 +20,11 @@
     "test:cleanup": "tsx scripts/cleanup-test-data.ts",
     "obs:seed": "tsx scripts/seed-observability-user.ts",
     "obs:cleanup": "tsx scripts/cleanup-observability-user.ts",
-    "test:observability": "tsx scripts/run-observability.ts"
+    "test:observability": "tsx scripts/run-observability.ts",
+    "monitor": "bash scripts/monitor.sh",
+    "monitor:live": "bash scripts/monitor.sh live",
+    "monitor:attackers": "bash scripts/monitor.sh attackers",
+    "monitor:watch": "bash scripts/monitor.sh watch"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0",
