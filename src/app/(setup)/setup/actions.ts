@@ -214,17 +214,62 @@ export async function saveBusinessAction(
     [labelAr, tenantId],
   );
 
-  await db.run(
-    'DELETE FROM equipment_types WHERE tenant_id = ?',
+  // FK-safe reconciliation — `equipment.equipment_type_id` is a non-cascade
+  // NOT NULL reference, so a blanket `DELETE FROM equipment_types` fails
+  // with SQLITE_CONSTRAINT_FOREIGNKEY whenever the tenant already has any
+  // equipment (e.g. re-running the wizard after some data exists).
+  //
+  // Strategy:
+  //   1. Load existing types + the set of IDs still referenced by equipment.
+  //   2. Delete only types that are BOTH unreferenced AND no longer in the
+  //      submitted list — safe under the FK.
+  //   3. For each submitted name: reuse the existing row (UPDATE sort_order
+  //      + name_ar) when it already exists; insert a fresh row otherwise.
+  //      Reusing by name_he preserves IDs, so any equipment that pointed at
+  //      this type keeps working without a cascade update.
+  //
+  // Types that are referenced by equipment but removed from the submitted
+  // list are silently kept — deleting them would break existing equipment.
+  // The user can remove the equipment first, then re-run the wizard, to
+  // drop them.
+  const existingTypes = await db.query<{ id: string; name_he: string | null }>(
+    'SELECT id, name_he FROM equipment_types WHERE tenant_id = ?',
     [tenantId],
   );
+  const referencedRows = await db.query<{ id: string }>(
+    'SELECT DISTINCT equipment_type_id AS id FROM equipment WHERE tenant_id = ?',
+    [tenantId],
+  );
+  const referencedIds = new Set(referencedRows.map((r) => r.id));
+
+  const byName = new Map<string, string>();
+  for (const t of existingTypes) {
+    if (t.name_he) byName.set(t.name_he, t.id);
+  }
+
+  const submittedNames = new Set(cleanedTypes.map((t) => t.name));
+  for (const t of existingTypes) {
+    const stillWanted = t.name_he != null && submittedNames.has(t.name_he);
+    const isLocked = referencedIds.has(t.id);
+    if (!stillWanted && !isLocked) {
+      await db.run('DELETE FROM equipment_types WHERE id = ?', [t.id]);
+    }
+  }
 
   for (let i = 0; i < cleanedTypes.length; i++) {
     const type = cleanedTypes[i];
-    await db.run(
-      'INSERT INTO equipment_types (tenant_id, name_ar, name_he, sort_order) VALUES (?, ?, ?, ?)',
-      [tenantId, type.name, type.name, i],
-    );
+    const existingId = byName.get(type.name);
+    if (existingId) {
+      await db.run(
+        'UPDATE equipment_types SET name_ar = ?, sort_order = ? WHERE id = ?',
+        [type.name, i, existingId],
+      );
+    } else {
+      await db.run(
+        'INSERT INTO equipment_types (tenant_id, name_ar, name_he, sort_order) VALUES (?, ?, ?, ?)',
+        [tenantId, type.name, type.name, i],
+      );
+    }
   }
 
   return { success: true };
