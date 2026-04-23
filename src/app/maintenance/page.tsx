@@ -4,7 +4,7 @@ import Image from 'next/image';
 export const runtime = 'edge';
 
 export const metadata = {
-  title: 'System Upgrade · מובילי כלל המחוז',
+  title: 'System Upgrade · עבדייה אחמד',
   description: 'המערכת נמצאת בשדרוג. חוזרים בקרוב.',
   robots: { index: false, follow: false },
 };
@@ -20,6 +20,7 @@ const KEYFRAMES = `
 @keyframes float1     { 0%,100%{transform:translate(0,0)} 50%{transform:translate(8px,-12px)} }
 @keyframes float2     { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-10px,6px)} }
 @keyframes glowPulse  { 0%,100%{filter:drop-shadow(0 0 30px rgba(245,158,11,.45)) drop-shadow(0 0 60px rgba(245,158,11,.2))} 50%{filter:drop-shadow(0 0 45px rgba(245,158,11,.7)) drop-shadow(0 0 90px rgba(245,158,11,.35))} }
+@keyframes spinSlow   { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 `;
 
 function TelemetryCard({
@@ -129,7 +130,7 @@ export default function MaintenancePage() {
       </div>
 
       {/* LAYER 6 — main content */}
-      <section className="relative z-10 flex min-h-[calc(100vh-32px)] flex-col items-center justify-center px-6 py-16">
+      <section className="relative z-10 flex min-h-[calc(100vh-32px)] flex-col items-center justify-center px-6 py-14">
         {/* Badge */}
         <div className="mb-10 inline-flex items-center gap-3 rounded-full border border-amber-400/30 bg-amber-500/5 px-5 py-1.5 backdrop-blur-sm">
           <span className="relative flex h-2 w-2">
@@ -141,40 +142,64 @@ export default function MaintenancePage() {
           </span>
         </div>
 
-        {/* Logo + orbital rings */}
-        <div className="relative mb-10 flex h-72 w-72 items-center justify-center md:h-80 md:w-80">
+        {/* Owner logo + orbital rings + hexagonal frame */}
+        <div className="relative mb-10 flex h-80 w-80 items-center justify-center md:h-96 md:w-96">
+          {/* Outermost dashed ring */}
           <div
             aria-hidden
-            className="absolute inset-0 rounded-full border border-amber-400/20"
+            className="absolute inset-0 rounded-full border border-dashed border-amber-400/20"
+            style={{ animation: 'orbitRing1 48s linear infinite' }}
+          />
+          {/* First orbit */}
+          <div
+            aria-hidden
+            className="absolute inset-4 rounded-full border border-amber-400/25"
             style={{ animation: 'orbitRing1 28s linear infinite' }}
           >
             <span className="absolute left-1/2 top-0 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-400 shadow-[0_0_16px_rgba(251,191,36,0.9)]" />
           </div>
+          {/* Second orbit (reverse) */}
           <div
             aria-hidden
-            className="absolute inset-6 rounded-full border border-dashed border-amber-400/15"
+            className="absolute inset-10 rounded-full border border-dashed border-amber-300/20"
             style={{ animation: 'orbitRing2 36s linear infinite' }}
           >
             <span className="absolute right-0 top-1/2 h-1.5 w-1.5 -translate-y-1/2 translate-x-1/2 rounded-full bg-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.8)]" />
           </div>
-          <div
-            aria-hidden
-            className="absolute inset-12 rounded-full border border-amber-400/10"
-            style={{ animation: 'orbitRing1 48s linear infinite reverse' }}
-          />
 
+          {/* Corner ticks (like camera focus marks) */}
+          <CornerTicks />
+
+          {/* Logo frame — glass card */}
           <div
-            className="relative z-10 h-44 w-44 md:h-52 md:w-52"
-            style={{ animation: 'glowPulse 3.5s ease-in-out infinite' }}
+            className="relative z-10 flex h-48 w-48 items-center justify-center rounded-full border border-amber-400/30 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-6 backdrop-blur-md md:h-56 md:w-56"
+            style={{
+              boxShadow:
+                '0 0 40px rgba(245,158,11,0.25), inset 0 0 30px rgba(245,158,11,0.08)',
+              animation: 'glowPulse 3.5s ease-in-out infinite',
+            }}
           >
-            <Image
-              src="/clal-logo.png"
-              alt="Movil Clal Hamahoz Ltd"
-              fill
-              priority
-              sizes="208px"
-              className="object-contain"
+            {/* Inner ring accent */}
+            <div
+              aria-hidden
+              className="absolute inset-2 rounded-full border border-amber-400/10"
             />
+
+            <div className="relative h-full w-full">
+              <Image
+                src="/logo.jpeg"
+                alt="עבדייה אחמד"
+                fill
+                priority
+                sizes="224px"
+                className="object-contain"
+                style={{
+                  filter:
+                    'invert(1) brightness(1.05) contrast(1.1) drop-shadow(0 0 6px rgba(251,191,36,0.35))',
+                  mixBlendMode: 'screen',
+                }}
+              />
+            </div>
           </div>
         </div>
 
@@ -183,14 +208,18 @@ export default function MaintenancePage() {
           SMART MANAGEMENT · SYSTEM UPGRADE
         </h1>
 
-        <h2 className="mb-6 bg-gradient-to-b from-white via-amber-100 to-amber-300 bg-clip-text text-center text-4xl font-black tracking-tight text-transparent sm:text-5xl md:text-6xl">
-          מערכת בשדרוג
+        <h2 className="mb-2 bg-gradient-to-b from-white via-amber-100 to-amber-300 bg-clip-text text-center text-4xl font-black tracking-tight text-transparent sm:text-5xl md:text-6xl">
+          עבדייה אחמד
         </h2>
 
+        <p className="mb-6 text-center font-mono text-[11px] uppercase tracking-[0.35em] text-amber-300/70">
+          עגלות חץ · בלוני תאורה · עיני חתול
+        </p>
+
         <p className="mb-10 max-w-xl text-center text-base leading-relaxed text-white/60 sm:text-lg">
-          אנחנו משדרגים את הפלטפורמה לגרסה הבאה.
+          המערכת נמצאת בשדרוג לגרסה החדשה.
           <br />
-          המערכת תחזור לאוויר בזמן הקרוב עם חוויה מתקדמת יותר.
+          נחזור בקרוב עם חוויה מתקדמת ומקצועית יותר.
         </p>
 
         {/* Terminal */}
@@ -220,7 +249,8 @@ export default function MaintenancePage() {
               <span className="text-white/40"> · d1 database</span>
             </TerminalLine>
             <TerminalLine delay="6.8s" duration="1s" color="text-emerald-300">
-              <span className="text-white/30">$</span> status: <span className="text-amber-300">DEPLOYING</span>
+              <span className="text-white/30">$</span> status:{' '}
+              <span className="text-amber-300">DEPLOYING</span>
               <span
                 className="ml-1 inline-block h-3 w-[6px] translate-y-0.5 bg-amber-300 align-middle"
                 style={{ animation: 'blink 1s steps(2,start) infinite' }}
@@ -237,25 +267,41 @@ export default function MaintenancePage() {
           <TelemetryCard label="ETA" value="SHORTLY" accent="violet" />
         </div>
 
-        {/* Credits */}
-        <footer
-          dir="rtl"
-          className="mt-16 flex flex-col items-center gap-2 border-t border-white/5 pt-8 text-center"
-        >
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/30">
-            Designed &amp; Engineered by
-          </div>
-          <div className="flex flex-col items-center gap-1 sm:flex-row sm:gap-3">
-            <span className="text-base font-semibold text-white sm:text-lg">
-              תכנון וביצוע · מובילי כלל המחוז בע״מ
-            </span>
-            <span className="hidden h-1 w-1 rounded-full bg-amber-400 sm:inline-block" />
-            <span className="text-base text-amber-300/90 sm:text-lg">
-              מוחמד באוואייה
-            </span>
-          </div>
-          <div className="mt-2 font-mono text-[10px] tracking-[0.25em] text-white/25">
-            © {year} · All Rights Reserved
+        {/* Developer credit — bottom */}
+        <footer className="mt-16 w-full max-w-3xl border-t border-white/5 pt-6">
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+            {/* Developer block */}
+            <div
+              dir="rtl"
+              className="order-2 flex items-center gap-3 sm:order-1"
+            >
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl ring-1 ring-amber-400/30">
+                <Image
+                  src="/clal-logo.png"
+                  alt="Movil Clal Hamahoz Ltd"
+                  fill
+                  sizes="48px"
+                  className="object-contain"
+                />
+              </div>
+              <div className="flex flex-col leading-tight">
+                <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-white/30">
+                  Engineered by
+                </span>
+                <span className="text-sm font-semibold text-white">
+                  מובילי כלל המחוז בע״מ
+                </span>
+                <span className="text-xs text-amber-300/80">
+                  מוחמד באוואייה · תכנון וביצוע
+                </span>
+              </div>
+            </div>
+
+            {/* Copyright block */}
+            <div className="order-1 flex flex-col items-center text-center font-mono text-[10px] uppercase tracking-[0.25em] text-white/30 sm:order-2 sm:items-end">
+              <span>© {year} · עבדייה אחמד</span>
+              <span className="mt-1">All Rights Reserved</span>
+            </div>
           </div>
         </footer>
       </section>
@@ -273,7 +319,7 @@ export default function MaintenancePage() {
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute bottom-[18%] left-[12%] h-1 w-1 rounded-full bg-fuchsia-400"
+        className="pointer-events-none absolute bottom-[28%] left-[12%] h-1 w-1 rounded-full bg-fuchsia-400"
         style={{ animation: 'float1 7s ease-in-out infinite' }}
       />
     </main>
@@ -293,6 +339,17 @@ function CornerBracket({ pos }: { pos: 'tl' | 'tr' | 'bl' | 'br' }) {
       className={`${base} ${variants[pos]}`}
       style={{ animation: 'flicker 3s ease-in-out infinite' }}
     />
+  );
+}
+
+function CornerTicks() {
+  return (
+    <>
+      <span className="absolute left-2 top-2 h-3 w-3 border-t-2 border-l-2 border-amber-400/60" />
+      <span className="absolute right-2 top-2 h-3 w-3 border-t-2 border-r-2 border-amber-400/60" />
+      <span className="absolute bottom-2 left-2 h-3 w-3 border-b-2 border-l-2 border-amber-400/60" />
+      <span className="absolute right-2 bottom-2 h-3 w-3 border-b-2 border-r-2 border-amber-400/60" />
+    </>
   );
 }
 
