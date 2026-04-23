@@ -8,6 +8,7 @@ import { verifyToken } from '@/lib/auth/jwt';
 const EXACT_BYPASS = new Set([
   '/login',
   '/setup',
+  '/maintenance',
   '/api/auth/login',
   '/api/health',
   '/favicon.ico',
