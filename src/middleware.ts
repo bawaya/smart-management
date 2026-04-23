@@ -25,6 +25,49 @@ function shouldBypass(pathname: string): boolean {
 }
 
 /**
+ * Maintenance bypass: paths that remain accessible when MAINTENANCE_MODE=1.
+ * - The maintenance page itself must be reachable.
+ * - Static Next.js assets must load for the page to render correctly.
+ * - /api/health stays up so uptime monitors keep working.
+ */
+const MAINTENANCE_BYPASS_PREFIXES = ['/_next', '/icons/', '/workbox-'];
+const MAINTENANCE_BYPASS_EXACT = new Set([
+  '/maintenance',
+  '/api/health',
+  '/favicon.ico',
+  '/manifest.json',
+  '/offline.html',
+  '/sw.js',
+]);
+
+/**
+ * True when maintenance mode is on. Checks both:
+ *  1. Cloudflare runtime env var `MAINTENANCE_MODE` (production).
+ *  2. `process.env.MAINTENANCE_MODE` (local dev via `.env.local`).
+ * Set the value to `"1"` to enable.
+ */
+async function isMaintenanceEnabled(): Promise<boolean> {
+  if (typeof process !== 'undefined' && process.env?.MAINTENANCE_MODE === '1') {
+    return true;
+  }
+  try {
+    const { getOptionalRequestContext } = await import(
+      '@cloudflare/next-on-pages'
+    );
+    const ctx = getOptionalRequestContext();
+    return ctx?.env?.MAINTENANCE_MODE === '1';
+  } catch {
+    return false;
+  }
+}
+
+function shouldBypassMaintenance(pathname: string): boolean {
+  if (MAINTENANCE_BYPASS_EXACT.has(pathname)) return true;
+  if (MAINTENANCE_BYPASS_PREFIXES.some((p) => pathname.startsWith(p))) return true;
+  return STATIC_EXT.test(pathname);
+}
+
+/**
  * Minimal payload we collect per request. Pass-through to `logRequest`.
  */
 interface RequestLogData {
@@ -89,6 +132,14 @@ export async function middleware(
 ): Promise<NextResponse> {
   const start = Date.now();
   const { pathname } = request.nextUrl;
+
+  if (!shouldBypassMaintenance(pathname) && (await isMaintenanceEnabled())) {
+    const maintenanceUrl = new URL('/maintenance', request.url);
+    return NextResponse.rewrite(maintenanceUrl, {
+      status: 503,
+      headers: { 'Retry-After': '3600' },
+    });
+  }
 
   if (shouldBypass(pathname)) {
     return NextResponse.next();

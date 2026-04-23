@@ -6,6 +6,7 @@ declare global {
   interface CloudflareEnv {
     DB: D1Database;
     JWT_SECRET?: string;
+    MAINTENANCE_MODE?: string;
   }
 
   // Minimal D1Database surface — mirrors what src/lib/db/d1-adapter.ts uses.
